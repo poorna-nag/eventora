@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:eventora/features/events/bloc/event_event.dart';
 import 'package:eventora/features/events/bloc/event_state.dart';
 import 'package:eventora/features/events/data/event_repository.dart';
-import 'package:eventora/features/events/data/event_model.dart';
 
 class EventBloc extends Bloc<EventEvent, EventState> {
   final EventRepository eventRepository;
@@ -23,11 +22,10 @@ class EventBloc extends Bloc<EventEvent, EventState> {
     emit(EventLoading());
 
     await _eventsSubscription?.cancel();
-    
+
     _eventsSubscription = eventRepository.getEventsStream().listen(
       (events) {
         if (!isClosed) {
-          add(const _EventsUpdated(events: []));
           emit(EventLoaded(events: events));
         }
       },
@@ -60,12 +58,14 @@ class EventBloc extends Bloc<EventEvent, EventState> {
   ) async {
     if (state is EventLoaded) {
       final currentState = state as EventLoaded;
-      emit(EventLoaded(
-        events: currentState.events,
-        searchQuery: currentState.searchQuery,
-        categoryFilter: event.category,
-        maxPriceFilter: event.maxPrice,
-      ));
+      emit(
+        EventLoaded(
+          events: currentState.events,
+          searchQuery: currentState.searchQuery,
+          categoryFilter: event.category,
+          maxPriceFilter: event.maxPrice,
+        ),
+      );
     }
   }
 
@@ -75,12 +75,14 @@ class EventBloc extends Bloc<EventEvent, EventState> {
   ) async {
     if (state is EventLoaded) {
       final currentState = state as EventLoaded;
-      emit(EventLoaded(
-        events: currentState.events,
-        searchQuery: event.query,
-        categoryFilter: currentState.categoryFilter,
-        maxPriceFilter: currentState.maxPriceFilter,
-      ));
+      emit(
+        EventLoaded(
+          events: currentState.events,
+          searchQuery: event.query,
+          categoryFilter: currentState.categoryFilter,
+          maxPriceFilter: currentState.maxPriceFilter,
+        ),
+      );
     }
   }
 
@@ -89,13 +91,4 @@ class EventBloc extends Bloc<EventEvent, EventState> {
     _eventsSubscription?.cancel();
     return super.close();
   }
-}
-
-class _EventsUpdated extends EventEvent {
-  final List<EventModel> events;
-
-  const _EventsUpdated({required this.events});
-
-  @override
-  List<Object?> get props => [events];
 }

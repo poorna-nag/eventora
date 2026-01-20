@@ -4,7 +4,10 @@ import 'package:eventora/core/utils/validators.dart';
 import 'package:eventora/core/widgets/custom_button.dart';
 import 'package:eventora/core/widgets/custom_text_field.dart';
 import 'package:eventora/features/auth/data/auth_service.dart';
+import 'package:eventora/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:eventora/features/auth/presentation/bloc/auth_event.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -40,6 +43,9 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (mounted) {
+        // Update AuthBloc so other screens (e.g. CreateScreen) see the user
+        // as authenticated immediately after login.
+        context.read<AuthBloc>().add(AuthCheckRequested());
         NavigationService.pushReplacementNamed(routeName: AppRoutes.home);
       }
     } catch (e) {

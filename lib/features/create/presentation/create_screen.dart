@@ -6,6 +6,7 @@ import 'package:eventora/core/widgets/custom_button.dart';
 import 'package:eventora/core/widgets/custom_text_field.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_state.dart';
+import 'package:eventora/features/auth/presentation/bloc/auth_event.dart';
 import 'package:eventora/features/auth/data/repo/auth_repo_impl.dart';
 import 'package:eventora/features/create/presentation/party_category_grid.dart';
 import 'package:eventora/features/events/bloc/event_bloc.dart';
@@ -145,6 +146,10 @@ class _CreateScreenState extends State<CreateScreen> {
 
       context.read<EventBloc>().add(EventCreateRequested(event: event));
       await _authRepository.incrementEventsCreated(authState.user.uid);
+      // Refresh auth state so profile stats (eventsCreated) update
+      if (mounted) {
+        context.read<AuthBloc>().add(AuthCheckRequested());
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

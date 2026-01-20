@@ -3,6 +3,7 @@ import 'package:eventora/core/utils/date_formatter.dart';
 import 'package:eventora/core/widgets/custom_button.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_state.dart';
+import 'package:eventora/features/auth/presentation/bloc/auth_event.dart';
 import 'package:eventora/features/bookings/bloc/booking_bloc.dart';
 import 'package:eventora/features/bookings/bloc/booking_event.dart';
 import 'package:eventora/features/bookings/bloc/booking_state.dart';
@@ -58,6 +59,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
               backgroundColor: Colors.green,
             ),
           );
+          // Refresh auth so bookingsMade count is updated in profile
+          context.read<AuthBloc>().add(AuthCheckRequested());
           Navigator.pop(context);
         } else if (state is BookingError) {
           ScaffoldMessenger.of(context).showSnackBar(
