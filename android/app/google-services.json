@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "315069840592",
+    "project_id": "eventora-d7ef2",
+    "storage_bucket": "eventora-d7ef2.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:315069840592:android:13976bf802aa54877572d5",
+        "android_client_info": {
+          "package_name": "com.example.eventora"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "315069840592-5gs0apat20ik6tesvlpc7f4p5flhvo3k.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCO5bgEYRyOxYTNeW5eUQXGqIag-39Rkdg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "315069840592-5gs0apat20ik6tesvlpc7f4p5flhvo3k.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
