@@ -1,12 +1,11 @@
-import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:eventora/features/events/bloc/event_event.dart';
 import 'package:eventora/features/events/bloc/event_state.dart';
 import 'package:eventora/features/events/data/event_repository.dart';
+import 'package:eventora/features/events/data/event_model.dart';
 
 class EventBloc extends Bloc<EventEvent, EventState> {
   final EventRepository eventRepository;
-  StreamSubscription? _eventsSubscription;
 
   EventBloc({required this.eventRepository}) : super(EventInitial()) {
     on<EventLoadRequested>(_onEventLoadRequested);
@@ -21,19 +20,10 @@ class EventBloc extends Bloc<EventEvent, EventState> {
   ) async {
     emit(EventLoading());
 
-    await _eventsSubscription?.cancel();
-
-    _eventsSubscription = eventRepository.getEventsStream().listen(
-      (events) {
-        if (!isClosed) {
-          emit(EventLoaded(events: events));
-        }
-      },
-      onError: (error) {
-        if (!isClosed) {
-          emit(EventError(message: error.toString()));
-        }
-      },
+    await emit.forEach<List<EventModel>>(
+      eventRepository.getEventsStream(),
+      onData: (events) => EventLoaded(events: events),
+      onError: (error, stackTrace) => EventError(message: error.toString()),
     );
   }
 
@@ -44,9 +34,9 @@ class EventBloc extends Bloc<EventEvent, EventState> {
     emit(EventCreating());
 
     try {
-      await eventRepository.createEvent(event.event);
-      emit(EventCreated());
-      add(EventLoadRequested());
+      final eventId = await eventRepository.createEvent(event.event);
+      final createdEvent = event.event.copyWith(eventId: eventId);
+      emit(EventCreated(event: createdEvent));
     } catch (e) {
       emit(EventError(message: e.toString().replaceAll('Exception: ', '')));
     }
@@ -84,11 +74,5 @@ class EventBloc extends Bloc<EventEvent, EventState> {
         ),
       );
     }
-  }
-
-  @override
-  Future<void> close() {
-    _eventsSubscription?.cancel();
-    return super.close();
   }
 }

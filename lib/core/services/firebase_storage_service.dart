@@ -9,14 +9,27 @@ class FirebaseStorageService {
     required String path,
   }) async {
     try {
-      final fileName = '${DateTime.now().millisecondsSinceEpoch}_${imageFile.path.split('/').last}';
+      final fileName =
+          '${DateTime.now().millisecondsSinceEpoch}_${imageFile.path.split('/').last}';
       final ref = _storage.ref().child('$path/$fileName');
-      
-      final uploadTask = await ref.putFile(imageFile);
+
+      // Add metadata to help with upload
+      final metadata = SettableMetadata(
+        contentType: 'image/jpeg',
+        customMetadata: {'uploaded': DateTime.now().toIso8601String()},
+      );
+
+      print('Uploading image to: $path/$fileName');
+      final uploadTask = await ref.putFile(imageFile, metadata);
       final downloadUrl = await uploadTask.ref.getDownloadURL();
-      
+      print('Upload successful: $downloadUrl');
+
       return downloadUrl;
+    } on FirebaseException catch (e) {
+      print('Firebase Storage Error: ${e.code} - ${e.message}');
+      throw Exception('Failed to upload image: ${e.message ?? e.code}');
     } catch (e) {
+      print('Upload Error: $e');
       throw Exception('Failed to upload image: $e');
     }
   }

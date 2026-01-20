@@ -64,10 +64,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
           Navigator.pop(context);
         } else if (state is BookingError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
         }
       },
@@ -106,28 +103,35 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                 children: [
                   Row(
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.orange.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          widget.event.category,
-                          style: const TextStyle(
-                            color: Colors.orange,
-                            fontWeight: FontWeight.bold,
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          child: Row(
+                            children: widget.event.categories.map((category) {
+                              return Container(
+                                margin: const EdgeInsets.only(right: 8),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 6,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.orange.withOpacity(0.1),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  category,
+                                  style: const TextStyle(
+                                    color: Colors.orange,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              );
+                            }).toList(),
                           ),
                         ),
                       ),
                       const Spacer(),
-                      Icon(
-                        Icons.people,
-                        color: Colors.grey.shade600,
-                      ),
+                      Icon(Icons.people, color: Colors.grey.shade600),
                       const SizedBox(width: 6),
                       Text(
                         '${widget.event.availableSlots}/${widget.event.totalSlots} person',
@@ -168,15 +172,14 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                   _buildInfoRow(
                     Icons.attach_money,
                     'Price',
-                    widget.event.price == 0 ? 'Free' : '₹${widget.event.price} per person',
+                    widget.event.price == 0
+                        ? 'Free'
+                        : '₹${widget.event.price} per person',
                   ),
                   const SizedBox(height: 24),
                   const Text(
                     'About Event',
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 12),
                   Text(
@@ -224,7 +227,8 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                           ),
                         ),
                         IconButton(
-                          onPressed: _selectedPersons < widget.event.availableSlots
+                          onPressed:
+                              _selectedPersons < widget.event.availableSlots
                               ? () => setState(() => _selectedPersons++)
                               : null,
                           icon: const Icon(Icons.add_circle_outline),
@@ -252,7 +256,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       bottomSheet: BlocBuilder<BookingBloc, BookingState>(
         builder: (context, state) {
           final isBooking = state is BookingCreating;
-          
+
           return widget.event.availableSlots > 0
               ? Container(
                   padding: const EdgeInsets.all(20),
@@ -307,10 +311,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
             children: [
               Text(
                 label,
-                style: TextStyle(
-                  color: Colors.grey.shade600,
-                  fontSize: 13,
-                ),
+                style: TextStyle(color: Colors.grey.shade600, fontSize: 13),
               ),
               const SizedBox(height: 4),
               Text(

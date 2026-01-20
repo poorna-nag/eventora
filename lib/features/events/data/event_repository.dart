@@ -8,7 +8,7 @@ class EventRepository {
     try {
       final docRef = _firestore.collection('events').doc();
       final eventWithId = event.copyWith(eventId: docRef.id);
-      
+
       await docRef.set(eventWithId.toJson());
       return docRef.id;
     } catch (e) {
@@ -36,9 +36,11 @@ class EventRepository {
         .collection('events')
         .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => EventModel.fromJson(doc.data()))
-            .toList());
+        .map(
+          (snapshot) => snapshot.docs
+              .map((doc) => EventModel.fromJson(doc.data()))
+              .toList(),
+        );
   }
 
   Future<List<EventModel>> getEventsByCreator(String userId) async {
@@ -46,12 +48,14 @@ class EventRepository {
       final snapshot = await _firestore
           .collection('events')
           .where('createdBy', isEqualTo: userId)
-          .orderBy('createdAt', descending: true)
           .get();
 
-      return snapshot.docs
+      final events = snapshot.docs
           .map((doc) => EventModel.fromJson(doc.data()))
           .toList();
+      // Sort in memory to avoid needing Firebase index
+      events.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+      return events;
     } catch (e) {
       throw Exception('Failed to fetch user events: $e');
     }
@@ -61,19 +65,23 @@ class EventRepository {
     return _firestore
         .collection('events')
         .where('createdBy', isEqualTo: userId)
-        .orderBy('createdAt', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => EventModel.fromJson(doc.data()))
-            .toList());
+        .map((snapshot) {
+          final events = snapshot.docs
+              .map((doc) => EventModel.fromJson(doc.data()))
+              .toList();
+          // Sort in memory to avoid needing Firebase index
+          events.sort((a, b) => b.createdAt.compareTo(a.createdAt));
+          return events;
+        });
   }
 
   Future<EventModel?> getEventById(String eventId) async {
     try {
       final doc = await _firestore.collection('events').doc(eventId).get();
-      
+
       if (!doc.exists) return null;
-      
+
       return EventModel.fromJson(doc.data()!);
     } catch (e) {
       throw Exception('Failed to fetch event: $e');
@@ -121,9 +129,15 @@ class EventRepository {
           .toList();
 
       return allEvents.where((event) {
-        final titleMatch = event.title.toLowerCase().contains(query.toLowerCase());
-        final descMatch = event.description.toLowerCase().contains(query.toLowerCase());
-        final venueMatch = event.venue.toLowerCase().contains(query.toLowerCase());
+        final titleMatch = event.title.toLowerCase().contains(
+          query.toLowerCase(),
+        );
+        final descMatch = event.description.toLowerCase().contains(
+          query.toLowerCase(),
+        );
+        final venueMatch = event.venue.toLowerCase().contains(
+          query.toLowerCase(),
+        );
         return titleMatch || descMatch || venueMatch;
       }).toList();
     } catch (e) {
@@ -154,11 +168,23 @@ class EventRepository {
       }
 
       if (fromDate != null) {
-        events = events.where((event) => event.date.isAfter(fromDate) || event.date.isAtSameMomentAs(fromDate)).toList();
+        events = events
+            .where(
+              (event) =>
+                  event.date.isAfter(fromDate) ||
+                  event.date.isAtSameMomentAs(fromDate),
+            )
+            .toList();
       }
 
       if (toDate != null) {
-        events = events.where((event) => event.date.isBefore(toDate) || event.date.isAtSameMomentAs(toDate)).toList();
+        events = events
+            .where(
+              (event) =>
+                  event.date.isBefore(toDate) ||
+                  event.date.isAtSameMomentAs(toDate),
+            )
+            .toList();
       }
 
       return events;

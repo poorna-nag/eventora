@@ -7,11 +7,7 @@ class EventCard extends StatelessWidget {
   final EventModel event;
   final VoidCallback onTap;
 
-  const EventCard({
-    super.key,
-    required this.event,
-    required this.onTap,
-  });
+  const EventCard({super.key, required this.event, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
@@ -34,7 +30,9 @@ class EventCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
               child: CachedNetworkImage(
                 imageUrl: event.imageUrl,
                 height: 180,
@@ -43,9 +41,7 @@ class EventCard extends StatelessWidget {
                 placeholder: (context, url) => Container(
                   height: 180,
                   color: Colors.grey.shade200,
-                  child: const Center(
-                    child: CircularProgressIndicator(),
-                  ),
+                  child: const Center(child: CircularProgressIndicator()),
                 ),
                 errorWidget: (context, url, error) => Container(
                   height: 180,
@@ -71,7 +67,9 @@ class EventCard extends StatelessWidget {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          event.category,
+                          event.categories.isNotEmpty
+                              ? event.categories.first
+                              : 'Other',
                           style: const TextStyle(
                             color: Colors.orange,
                             fontSize: 12,
@@ -80,11 +78,7 @@ class EventCard extends StatelessWidget {
                         ),
                       ),
                       const Spacer(),
-                      Icon(
-                        Icons.people,
-                        size: 16,
-                        color: Colors.grey.shade600,
-                      ),
+                      Icon(Icons.people, size: 16, color: Colors.grey.shade600),
                       const SizedBox(width: 4),
                       Text(
                         '${event.availableSlots}/${event.totalSlots} person',

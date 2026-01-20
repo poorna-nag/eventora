@@ -12,7 +12,7 @@ class EventModel {
   final int availableSlots;
   final String createdBy;
   final String imageUrl;
-  final String category;
+  final List<String> categories;
   final Timestamp createdAt;
   final double? latitude;
   final double? longitude;
@@ -30,7 +30,7 @@ class EventModel {
     required this.availableSlots,
     required this.createdBy,
     required this.imageUrl,
-    required this.category,
+    required this.categories,
     required this.createdAt,
     this.latitude,
     this.longitude,
@@ -50,7 +50,9 @@ class EventModel {
       availableSlots: json['availableSlots'] ?? 0,
       createdBy: json['createdBy'] ?? '',
       imageUrl: json['imageUrl'] ?? '',
-      category: json['category'] ?? 'Other',
+      categories: json['categories'] != null
+          ? List<String>.from(json['categories'])
+          : (json['category'] != null ? [json['category']] : ['Other']),
       createdAt: json['createdAt'] ?? Timestamp.now(),
       latitude: json['latitude']?.toDouble(),
       longitude: json['longitude']?.toDouble(),
@@ -71,7 +73,7 @@ class EventModel {
       'availableSlots': availableSlots,
       'createdBy': createdBy,
       'imageUrl': imageUrl,
-      'category': category,
+      'categories': categories,
       'createdAt': createdAt,
       'latitude': latitude,
       'longitude': longitude,
@@ -91,7 +93,7 @@ class EventModel {
     int? availableSlots,
     String? createdBy,
     String? imageUrl,
-    String? category,
+    List<String>? categories,
     Timestamp? createdAt,
     double? latitude,
     double? longitude,
@@ -109,7 +111,7 @@ class EventModel {
       availableSlots: availableSlots ?? this.availableSlots,
       createdBy: createdBy ?? this.createdBy,
       imageUrl: imageUrl ?? this.imageUrl,
-      category: category ?? this.category,
+      categories: categories ?? this.categories,
       createdAt: createdAt ?? this.createdAt,
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,

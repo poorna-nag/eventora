@@ -13,6 +13,7 @@ import 'package:eventora/features/events/bloc/event_bloc.dart';
 import 'package:eventora/features/events/bloc/event_event.dart';
 import 'package:eventora/features/events/bloc/event_state.dart';
 import 'package:eventora/features/events/data/event_model.dart';
+import 'package:eventora/features/events/event_preview_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
@@ -116,7 +117,27 @@ class _CreateScreenState extends State<CreateScreen> {
     }
 
     try {
-      final imageUrl = await _storageService.uploadEventImage(_selectedImage!);
+      String imageUrl;
+      try {
+        imageUrl = await _storageService.uploadEventImage(_selectedImage!);
+      } catch (uploadError) {
+        print('Image upload failed: $uploadError');
+        // Use a placeholder image URL if upload fails
+        // This allows event creation to proceed despite storage issues
+        imageUrl = 'https://via.placeholder.com/400x300.png?text=Event+Image';
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text(
+                'Image upload failed. Using placeholder. Please check Firebase Storage rules.',
+              ),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 4),
+            ),
+          );
+        }
+      }
 
       final eventTime = DateTime(
         _selectedDate!.year,
@@ -138,9 +159,9 @@ class _CreateScreenState extends State<CreateScreen> {
         availableSlots: int.parse(_personsController.text),
         createdBy: authState.user.uid,
         imageUrl: imageUrl,
-        category: _selectedCategories.isNotEmpty
-            ? _selectedCategories.first
-            : 'Other',
+        categories: _selectedCategories.isNotEmpty
+            ? _selectedCategories
+            : ['Other'],
         createdAt: Timestamp.now(),
       );
 
@@ -167,19 +188,20 @@ class _CreateScreenState extends State<CreateScreen> {
     return BlocListener<EventBloc, EventState>(
       listener: (context, state) {
         if (state is EventCreated) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Event created successfully!'),
-              backgroundColor: Colors.green,
+          // Navigate to preview screen
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => EventPreviewScreen(event: state.event),
             ),
           );
 
+          // Reset form
           _formKey.currentState!.reset();
           setState(() {
             _selectedImage = null;
             _selectedDate = null;
             _selectedTime = null;
-            _selectedCategories = [];
             _selectedCategories = [];
           });
           _titleController.clear();

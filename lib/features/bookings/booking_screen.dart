@@ -50,7 +50,9 @@ class _BookingScreenState extends State<BookingScreen> {
     );
 
     if (confirmed == true && mounted) {
-      context.read<BookingBloc>().add(BookingCancelRequested(bookingId: bookingId));
+      context.read<BookingBloc>().add(
+        BookingCancelRequested(bookingId: bookingId),
+      );
     }
   }
 
@@ -73,10 +75,7 @@ class _BookingScreenState extends State<BookingScreen> {
           }
         } else if (state is BookingError) {
           ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(state.message),
-              backgroundColor: Colors.red,
-            ),
+            SnackBar(content: Text(state.message), backgroundColor: Colors.red),
           );
         }
       },
@@ -89,7 +88,7 @@ class _BookingScreenState extends State<BookingScreen> {
             'My Bookings',
             style: TextStyle(color: Colors.orange),
           ),
-          automaticallyImplyLeading: false,
+          iconTheme: const IconThemeData(color: Colors.orange),
         ),
         body: BlocBuilder<AuthBloc, AuthState>(
           builder: (context, authState) {
@@ -98,11 +97,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(
-                      Icons.login,
-                      size: 80,
-                      color: Colors.grey.shade400,
-                    ),
+                    Icon(Icons.login, size: 80, color: Colors.grey.shade400),
                     const SizedBox(height: 16),
                     Text(
                       'Please login to view bookings',
@@ -123,9 +118,7 @@ class _BookingScreenState extends State<BookingScreen> {
                 }
 
                 if (bookingState is BookingError) {
-                  return Center(
-                    child: Text('Error: ${bookingState.message}'),
-                  );
+                  return Center(child: Text('Error: ${bookingState.message}'));
                 }
 
                 if (bookingState is BookingLoaded) {
@@ -174,12 +167,15 @@ class _BookingScreenState extends State<BookingScreen> {
                         return BookingCard(
                           booking: booking,
                           onTap: () async {
-                            final event = await _eventRepository.getEventById(booking.eventId);
+                            final event = await _eventRepository.getEventById(
+                              booking.eventId,
+                            );
                             if (event != null && mounted) {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => EventDetailsScreen(event: event),
+                                  builder: (context) =>
+                                      EventDetailsScreen(event: event),
                                 ),
                               );
                             }

@@ -2,13 +2,12 @@ import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:eventora/core/navigation/navigation_service.dart';
 import 'package:eventora/core/services/firebase_storage_service.dart';
-import 'package:eventora/core/widgets/event_card.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_event.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_state.dart';
 import 'package:eventora/features/auth/data/auth_service.dart';
-import 'package:eventora/features/events/data/event_repository.dart';
-import 'package:eventora/features/events/event_details_screen.dart';
+import 'package:eventora/features/bookings/booking_screen.dart';
+import 'package:eventora/features/profile/my_created_events_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
@@ -22,7 +21,6 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final AuthService _authService = AuthService();
-  final EventRepository _eventRepository = EventRepository();
   final FirebaseStorageService _storageService = FirebaseStorageService();
   final ImagePicker _picker = ImagePicker();
   bool _isUploadingImage = false;
@@ -314,93 +312,48 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       Row(
                         children: [
                           Expanded(
-                            child: _buildStatCard(
+                            child: _buildClickableStatCard(
                               'Events Created',
                               user.eventsCreated.toString(),
                               Icons.event,
+                              () {
+                                print(
+                                  'Events Created card tapped - userId: ${user.uid}',
+                                );
+                                // Navigate to a screen showing created events with tracking
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        MyCreatedEventsScreen(userId: user.uid),
+                                  ),
+                                );
+                              },
                             ),
                           ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: _buildStatCard(
+                            child: _buildClickableStatCard(
                               'Bookings Made',
                               user.bookingsMade.toString(),
                               Icons.bookmark,
+                              () {
+                                print('Bookings Made card tapped');
+                                // Navigate to bookings screen
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const BookingScreen(),
+                                  ),
+                                );
+                              },
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 24),
-                      const Text(
-                        'My Events',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF7A3EE6),
-                        ),
-                      ),
-                      const SizedBox(height: 12),
                     ],
                   ),
                 ),
-              ),
-              StreamBuilder(
-                stream: _eventRepository.getEventsByCreatorStream(user.uid),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const SliverToBoxAdapter(
-                      child: Center(child: CircularProgressIndicator()),
-                    );
-                  }
-
-                  if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                    return SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.all(40),
-                        child: Column(
-                          children: [
-                            Icon(
-                              Icons.event_busy,
-                              size: 60,
-                              color: Colors.grey.shade400,
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'No events created yet',
-                              style: TextStyle(
-                                fontSize: 16,
-                                color: Colors.grey.shade600,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
-
-                  final events = snapshot.data!;
-
-                  return SliverPadding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    sliver: SliverList(
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final event = events[index];
-                        return EventCard(
-                          event: event,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) =>
-                                    EventDetailsScreen(event: event),
-                              ),
-                            );
-                          },
-                        );
-                      }, childCount: events.length),
-                    ),
-                  );
-                },
               ),
               SliverToBoxAdapter(
                 child: Padding(
@@ -426,39 +379,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  Widget _buildStatCard(String label, String value, IconData icon) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          Icon(icon, color: Colors.orange, size: 30),
-          const SizedBox(height: 8),
-          Text(
-            value,
-            style: const TextStyle(
-              fontSize: 24,
-              fontWeight: FontWeight.bold,
-              color: Colors.orange,
+  Widget _buildClickableStatCard(
+    String label,
+    String value,
+    IconData icon,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            label,
-            textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
-          ),
-        ],
+          ],
+        ),
+        child: Column(
+          children: [
+            Icon(icon, color: Colors.orange, size: 30),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: Colors.orange,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 12, color: Colors.grey.shade600),
+            ),
+          ],
+        ),
       ),
     );
   }

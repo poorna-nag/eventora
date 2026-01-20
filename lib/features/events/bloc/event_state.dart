@@ -38,23 +38,39 @@ class EventLoaded extends EventState {
     }
 
     if (categoryFilter != null) {
-      filtered = filtered.where((event) => event.category == categoryFilter).toList();
+      filtered = filtered
+          .where((event) => event.categories.contains(categoryFilter))
+          .toList();
     }
 
     if (maxPriceFilter != null) {
-      filtered = filtered.where((event) => event.price <= maxPriceFilter!).toList();
+      filtered = filtered
+          .where((event) => event.price <= maxPriceFilter!)
+          .toList();
     }
 
     return filtered;
   }
 
   @override
-  List<Object?> get props => [events, searchQuery, categoryFilter, maxPriceFilter];
+  List<Object?> get props => [
+    events,
+    searchQuery,
+    categoryFilter,
+    maxPriceFilter,
+  ];
 }
 
 class EventCreating extends EventState {}
 
-class EventCreated extends EventState {}
+class EventCreated extends EventState {
+  final EventModel event;
+
+  const EventCreated({required this.event});
+
+  @override
+  List<Object?> get props => [event];
+}
 
 class EventError extends EventState {
   final String message;

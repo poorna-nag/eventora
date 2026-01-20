@@ -13,7 +13,7 @@ class BookingRepository {
   }) async {
     try {
       final event = await _eventRepository.getEventById(eventId);
-      
+
       if (event == null) {
         throw Exception('Event not found');
       }
@@ -23,7 +23,7 @@ class BookingRepository {
       }
 
       final docRef = _firestore.collection('bookings').doc();
-      
+
       final booking = BookingModel(
         bookingId: docRef.id,
         eventId: eventId,
@@ -46,7 +46,7 @@ class BookingRepository {
         }
 
         final currentSlots = eventSnapshot.data()!['availableSlots'] as int;
-        
+
         if (currentSlots < slotsBooked) {
           throw Exception('Not enough slots available');
         }
@@ -68,12 +68,14 @@ class BookingRepository {
       final snapshot = await _firestore
           .collection('bookings')
           .where('userId', isEqualTo: userId)
-          .orderBy('bookingTime', descending: true)
           .get();
 
-      return snapshot.docs
+      final bookings = snapshot.docs
           .map((doc) => BookingModel.fromJson(doc.data()))
           .toList();
+      // Sort in memory to avoid Firebase index
+      bookings.sort((a, b) => b.bookingTime.compareTo(a.bookingTime));
+      return bookings;
     } catch (e) {
       throw Exception('Failed to fetch bookings: $e');
     }
@@ -83,11 +85,15 @@ class BookingRepository {
     return _firestore
         .collection('bookings')
         .where('userId', isEqualTo: userId)
-        .orderBy('bookingTime', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => BookingModel.fromJson(doc.data()))
-            .toList());
+        .map((snapshot) {
+          final bookings = snapshot.docs
+              .map((doc) => BookingModel.fromJson(doc.data()))
+              .toList();
+          // Sort in memory to avoid Firebase index
+          bookings.sort((a, b) => b.bookingTime.compareTo(a.bookingTime));
+          return bookings;
+        });
   }
 
   Future<List<BookingModel>> getEventBookings(String eventId) async {
@@ -95,12 +101,14 @@ class BookingRepository {
       final snapshot = await _firestore
           .collection('bookings')
           .where('eventId', isEqualTo: eventId)
-          .orderBy('bookingTime', descending: true)
           .get();
 
-      return snapshot.docs
+      final bookings = snapshot.docs
           .map((doc) => BookingModel.fromJson(doc.data()))
           .toList();
+      // Sort in memory to avoid Firebase index
+      bookings.sort((a, b) => b.bookingTime.compareTo(a.bookingTime));
+      return bookings;
     } catch (e) {
       throw Exception('Failed to fetch event bookings: $e');
     }
@@ -110,17 +118,24 @@ class BookingRepository {
     return _firestore
         .collection('bookings')
         .where('eventId', isEqualTo: eventId)
-        .orderBy('bookingTime', descending: true)
         .snapshots()
-        .map((snapshot) => snapshot.docs
-            .map((doc) => BookingModel.fromJson(doc.data()))
-            .toList());
+        .map((snapshot) {
+          final bookings = snapshot.docs
+              .map((doc) => BookingModel.fromJson(doc.data()))
+              .toList();
+          // Sort in memory to avoid Firebase index
+          bookings.sort((a, b) => b.bookingTime.compareTo(a.bookingTime));
+          return bookings;
+        });
   }
 
   Future<void> cancelBooking(String bookingId) async {
     try {
-      final bookingDoc = await _firestore.collection('bookings').doc(bookingId).get();
-      
+      final bookingDoc = await _firestore
+          .collection('bookings')
+          .doc(bookingId)
+          .get();
+
       if (!bookingDoc.exists) {
         throw Exception('Booking not found');
       }
@@ -164,9 +179,9 @@ class BookingRepository {
   Future<BookingModel?> getBookingById(String bookingId) async {
     try {
       final doc = await _firestore.collection('bookings').doc(bookingId).get();
-      
+
       if (!doc.exists) return null;
-      
+
       return BookingModel.fromJson(doc.data()!);
     } catch (e) {
       throw Exception('Failed to fetch booking: $e');
