@@ -55,22 +55,61 @@ class _HomeViewScreenState extends State<HomeViewScreen> {
   }
 
   Future<void> _getCurrentLocation() async {
+    if (!mounted) return;
     setState(() => _isLoadingLocation = true);
     try {
+      print('Requesting location...');
       final position = await _locationService.getCurrentLocation();
+      print('Got position: ${position?.latitude}, ${position?.longitude}');
+
       if (position != null) {
         final address = await _locationService.getAddressFromCoordinates(
           position.latitude,
           position.longitude,
         );
-        setState(() {
-          _currentAddress = address;
-        });
+        print('Got address: $address');
+        if (mounted) {
+          setState(() {
+            _currentAddress = address;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Location: $address'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       }
     } catch (e) {
-      // Handle error silently
+      print('Location error: $e');
+      if (mounted) {
+        setState(() {
+          _currentAddress = 'Unable to get location';
+        });
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to get location: ${e.toString().replaceAll('Exception: ', '')}',
+            ),
+            backgroundColor: Colors.red,
+            action: SnackBarAction(
+              label: 'Retry',
+              textColor: Colors.white,
+              onPressed: _getCurrentLocation,
+            ),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
     } finally {
-      setState(() => _isLoadingLocation = false);
+      if (mounted) {
+        setState(() => _isLoadingLocation = false);
+      }
     }
   }
 
@@ -95,7 +134,7 @@ class _HomeViewScreenState extends State<HomeViewScreen> {
               child: Row(
                 children: [
                   Text(
-                    'Locali',
+                    'Eventora',
                     style: GoogleFonts.aboreto(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,

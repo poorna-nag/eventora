@@ -8,6 +8,7 @@ import 'package:eventora/features/auth/presentation/bloc/auth_state.dart';
 import 'package:eventora/features/auth/data/auth_service.dart';
 import 'package:eventora/features/bookings/booking_screen.dart';
 import 'package:eventora/features/profile/my_created_events_screen.dart';
+import 'package:eventora/features/scanner/qr_scanner_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
@@ -207,6 +208,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 pinned: true,
                 backgroundColor: Colors.orange,
                 automaticallyImplyLeading: false,
+                actions: [
+                  IconButton(
+                    icon: const Icon(
+                      Icons.qr_code_scanner,
+                      color: Colors.white,
+                    ),
+                    tooltip: 'Scan Ticket',
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const QRScannerScreen(),
+                        ),
+                      );
+                    },
+                  ),
+                ],
                 flexibleSpace: FlexibleSpaceBar(
                   background: Container(
                     decoration: const BoxDecoration(

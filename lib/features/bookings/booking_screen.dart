@@ -174,8 +174,10 @@ class _BookingScreenState extends State<BookingScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) =>
-                                      EventDetailsScreen(event: event),
+                                  builder: (context) => EventDetailsScreen(
+                                    event: event,
+                                    existingBooking: booking,
+                                  ),
                                 ),
                               );
                             }

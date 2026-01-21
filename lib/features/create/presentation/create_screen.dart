@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eventora/core/services/firebase_storage_service.dart';
+import 'package:eventora/core/services/location_service.dart';
 import 'package:eventora/core/utils/validators.dart';
 import 'package:eventora/core/widgets/custom_button.dart';
 import 'package:eventora/core/widgets/custom_text_field.dart';
@@ -37,11 +38,13 @@ class _CreateScreenState extends State<CreateScreen> {
   final FirebaseStorageService _storageService = FirebaseStorageService();
   final AuthRepository _authRepository = AuthRepository();
   final ImagePicker _picker = ImagePicker();
+  final LocationService _locationService = LocationService();
 
   File? _selectedImage;
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
   List<String> _selectedCategories = [];
+  bool _isLoadingLocation = false;
 
   @override
   void dispose() {
@@ -81,6 +84,47 @@ class _CreateScreenState extends State<CreateScreen> {
     );
     if (picked != null) {
       setState(() => _selectedTime = picked);
+    }
+  }
+
+  Future<void> _getVenueLocation() async {
+    setState(() => _isLoadingLocation = true);
+    try {
+      final position = await _locationService.getCurrentLocation();
+      if (position != null) {
+        final address = await _locationService.getAddressFromCoordinates(
+          position.latitude,
+          position.longitude,
+        );
+        if (mounted) {
+          setState(() {
+            _venueController.text = address;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Location set: $address'),
+              backgroundColor: Colors.green,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Failed to get location: ${e.toString().replaceAll('Exception: ', '')}',
+            ),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingLocation = false);
+      }
     }
   }
 
@@ -309,13 +353,33 @@ class _CreateScreenState extends State<CreateScreen> {
                     const SizedBox(height: 16),
                     CustomTextField(
                       controller: _venueController,
-                      hintText: 'Venue',
+                      hintText: 'Venue / Address',
                       validator: (value) =>
                           Validators.validateRequired(value, 'Venue'),
                       prefixIcon: const Icon(
                         Icons.location_on,
                         color: Colors.orange,
                       ),
+                      suffixIcon: _isLoadingLocation
+                          ? const Padding(
+                              padding: EdgeInsets.all(12.0),
+                              child: SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2,
+                                  color: Colors.orange,
+                                ),
+                              ),
+                            )
+                          : IconButton(
+                              icon: const Icon(
+                                Icons.my_location,
+                                color: Colors.orange,
+                              ),
+                              tooltip: 'Use current location',
+                              onPressed: _getVenueLocation,
+                            ),
                     ),
                     const SizedBox(height: 16),
                     Row(

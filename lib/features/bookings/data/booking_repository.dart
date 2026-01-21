@@ -24,6 +24,10 @@ class BookingRepository {
 
       final docRef = _firestore.collection('bookings').doc();
 
+      // Generate unique QR data for the ticket
+      final qrData =
+          '${docRef.id}|$eventId|$userId|${DateTime.now().millisecondsSinceEpoch}';
+
       final booking = BookingModel(
         bookingId: docRef.id,
         eventId: eventId,
@@ -35,6 +39,7 @@ class BookingRepository {
         eventTitle: event.title,
         eventImageUrl: event.imageUrl,
         eventDate: event.date,
+        qrData: qrData,
       );
 
       await _firestore.runTransaction((transaction) async {

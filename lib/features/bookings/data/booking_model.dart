@@ -11,6 +11,9 @@ class BookingModel {
   final String? eventTitle;
   final String? eventImageUrl;
   final DateTime? eventDate;
+  final bool isCheckedIn;
+  final Timestamp? checkedInAt;
+  final String qrData;
 
   const BookingModel({
     required this.bookingId,
@@ -23,6 +26,9 @@ class BookingModel {
     this.eventTitle,
     this.eventImageUrl,
     this.eventDate,
+    this.isCheckedIn = false,
+    this.checkedInAt,
+    required this.qrData,
   });
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
@@ -36,9 +42,14 @@ class BookingModel {
       status: json['status'] ?? 'confirmed',
       eventTitle: json['eventTitle'],
       eventImageUrl: json['eventImageUrl'],
-      eventDate: json['eventDate'] != null 
-          ? (json['eventDate'] as Timestamp).toDate() 
+      eventDate: json['eventDate'] != null
+          ? (json['eventDate'] as Timestamp).toDate()
           : null,
+      isCheckedIn: json['isCheckedIn'] ?? false,
+      checkedInAt: json['checkedInAt'],
+      qrData:
+          json['qrData'] ??
+          '${json['bookingId']}|${json['eventId']}|${json['userId']}',
     );
   }
 
@@ -54,6 +65,9 @@ class BookingModel {
       'eventTitle': eventTitle,
       'eventImageUrl': eventImageUrl,
       'eventDate': eventDate != null ? Timestamp.fromDate(eventDate!) : null,
+      'isCheckedIn': isCheckedIn,
+      'checkedInAt': checkedInAt,
+      'qrData': qrData,
     };
   }
 
@@ -68,6 +82,9 @@ class BookingModel {
     String? eventTitle,
     String? eventImageUrl,
     DateTime? eventDate,
+    bool? isCheckedIn,
+    Timestamp? checkedInAt,
+    String? qrData,
   }) {
     return BookingModel(
       bookingId: bookingId ?? this.bookingId,
@@ -80,6 +97,9 @@ class BookingModel {
       eventTitle: eventTitle ?? this.eventTitle,
       eventImageUrl: eventImageUrl ?? this.eventImageUrl,
       eventDate: eventDate ?? this.eventDate,
+      isCheckedIn: isCheckedIn ?? this.isCheckedIn,
+      checkedInAt: checkedInAt ?? this.checkedInAt,
+      qrData: qrData ?? this.qrData,
     );
   }
 }

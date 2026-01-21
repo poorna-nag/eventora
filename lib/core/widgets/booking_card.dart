@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:eventora/core/utils/date_formatter.dart';
 import 'package:eventora/features/bookings/data/booking_model.dart';
+import 'package:eventora/features/bookings/ticket_qr_screen.dart';
 import 'package:flutter/material.dart';
 
 class BookingCard extends StatelessWidget {
@@ -50,9 +51,7 @@ class BookingCard extends StatelessWidget {
                     width: 100,
                     height: 120,
                     color: Colors.grey.shade200,
-                    child: const Center(
-                      child: CircularProgressIndicator(),
-                    ),
+                    child: const Center(child: CircularProgressIndicator()),
                   ),
                   errorWidget: (context, url, error) => Container(
                     width: 100,
@@ -89,13 +88,21 @@ class BookingCard extends StatelessWidget {
                           decoration: BoxDecoration(
                             color: isCancelled
                                 ? Colors.red.withOpacity(0.1)
+                                : booking.isCheckedIn
+                                ? Colors.blue.withOpacity(0.1)
                                 : Colors.green.withOpacity(0.1),
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            booking.status.toUpperCase(),
+                            booking.isCheckedIn
+                                ? 'CHECKED IN'
+                                : booking.status.toUpperCase(),
                             style: TextStyle(
-                              color: isCancelled ? Colors.red : Colors.green,
+                              color: isCancelled
+                                  ? Colors.red
+                                  : booking.isCheckedIn
+                                  ? Colors.blue
+                                  : Colors.green,
                               fontSize: 10,
                               fontWeight: FontWeight.bold,
                             ),
@@ -144,32 +151,85 @@ class BookingCard extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          '₹${booking.amountPaid}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.orange,
-                          ),
-                        ),
-                        if (!isCancelled && onCancel != null)
-                          TextButton(
-                            onPressed: onCancel,
-                            style: TextButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 4,
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              '₹${booking.amountPaid}',
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.orange,
                               ),
-                              minimumSize: Size.zero,
-                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                             ),
-                            child: const Text(
-                              'Cancel',
+                            Text(
+                              '${booking.slotsBooked} ticket${booking.slotsBooked > 1 ? 's' : ''}',
                               style: TextStyle(
-                                color: Colors.red,
-                                fontSize: 12,
+                                fontSize: 10,
+                                color: Colors.grey.shade600,
                               ),
                             ),
+                          ],
+                        ),
+                        if (!isCancelled)
+                          Row(
+                            children: [
+                              // Show Ticket button
+                              TextButton.icon(
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (context) =>
+                                          TicketQRScreen(booking: booking),
+                                    ),
+                                  );
+                                },
+                                style: TextButton.styleFrom(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 8,
+                                    vertical: 4,
+                                  ),
+                                  minimumSize: Size.zero,
+                                  tapTargetSize:
+                                      MaterialTapTargetSize.shrinkWrap,
+                                ),
+                                icon: const Icon(
+                                  Icons.qr_code,
+                                  color: Colors.orange,
+                                  size: 16,
+                                ),
+                                label: const Text(
+                                  'Ticket',
+                                  style: TextStyle(
+                                    color: Colors.orange,
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ),
+                              if (onCancel != null) ...[
+                                const SizedBox(width: 4),
+                                TextButton(
+                                  onPressed: onCancel,
+                                  style: TextButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 8,
+                                      vertical: 4,
+                                    ),
+                                    minimumSize: Size.zero,
+                                    tapTargetSize:
+                                        MaterialTapTargetSize.shrinkWrap,
+                                  ),
+                                  child: const Text(
+                                    'Cancel',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ],
                           ),
                       ],
                     ),
