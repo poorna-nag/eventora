@@ -29,7 +29,16 @@ class BookingModel {
     this.isCheckedIn = false,
     this.checkedInAt,
     required this.qrData,
+    this.platformFee = 0.0,
+    this.organizerEarnings = 0.0,
+    this.razorpayFee = 0.0,
+    this.paymentId,
   });
+
+  final double platformFee;
+  final double organizerEarnings;
+  final double razorpayFee;
+  final String? paymentId;
 
   factory BookingModel.fromJson(Map<String, dynamic> json) {
     return BookingModel(
@@ -50,6 +59,10 @@ class BookingModel {
       qrData:
           json['qrData'] ??
           '${json['bookingId']}|${json['eventId']}|${json['userId']}',
+      platformFee: (json['platformFee'] ?? 0.0).toDouble(),
+      organizerEarnings: (json['organizerEarnings'] ?? 0.0).toDouble(),
+      razorpayFee: (json['razorpayFee'] ?? 0.0).toDouble(),
+      paymentId: json['paymentId'],
     );
   }
 
@@ -68,6 +81,10 @@ class BookingModel {
       'isCheckedIn': isCheckedIn,
       'checkedInAt': checkedInAt,
       'qrData': qrData,
+      'platformFee': platformFee,
+      'organizerEarnings': organizerEarnings,
+      'razorpayFee': razorpayFee,
+      'paymentId': paymentId,
     };
   }
 
@@ -85,6 +102,10 @@ class BookingModel {
     bool? isCheckedIn,
     Timestamp? checkedInAt,
     String? qrData,
+    double? platformFee,
+    double? organizerEarnings,
+    double? razorpayFee,
+    String? paymentId,
   }) {
     return BookingModel(
       bookingId: bookingId ?? this.bookingId,
@@ -100,6 +121,10 @@ class BookingModel {
       isCheckedIn: isCheckedIn ?? this.isCheckedIn,
       checkedInAt: checkedInAt ?? this.checkedInAt,
       qrData: qrData ?? this.qrData,
+      platformFee: platformFee ?? this.platformFee,
+      organizerEarnings: organizerEarnings ?? this.organizerEarnings,
+      razorpayFee: razorpayFee ?? this.razorpayFee,
+      paymentId: paymentId ?? this.paymentId,
     );
   }
 }

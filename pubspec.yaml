@@ -26,7 +26,8 @@ dependencies:
   intl_phone_field: ^3.2.0
   flutter_launcher_icons: ^0.14.4
   qr_flutter: ^4.1.0
-  mobile_scanner: ^6.0.2
+  qr_code_scanner: ^1.0.1
+  razorpay_flutter: ^1.4.0
 
 dev_dependencies:
   flutter_test:

@@ -10,6 +10,11 @@ class BookingRepository {
     required String eventId,
     required String userId,
     required int slotsBooked,
+    required int amountPaid,
+    required String paymentId,
+    required double platformFee,
+    required double organizerEarnings,
+    required double razorpayFee,
   }) async {
     try {
       final event = await _eventRepository.getEventById(eventId);
@@ -33,13 +38,17 @@ class BookingRepository {
         eventId: eventId,
         userId: userId,
         slotsBooked: slotsBooked,
-        amountPaid: event.price * slotsBooked,
+        amountPaid: amountPaid,
         bookingTime: Timestamp.now(),
         status: 'confirmed',
         eventTitle: event.title,
         eventImageUrl: event.imageUrl,
         eventDate: event.date,
         qrData: qrData,
+        platformFee: platformFee,
+        organizerEarnings: organizerEarnings,
+        razorpayFee: razorpayFee,
+        paymentId: paymentId,
       );
 
       await _firestore.runTransaction((transaction) async {

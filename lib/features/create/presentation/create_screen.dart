@@ -45,6 +45,7 @@ class _CreateScreenState extends State<CreateScreen> {
   TimeOfDay? _selectedTime;
   List<String> _selectedCategories = [];
   bool _isLoadingLocation = false;
+  bool _isTcAccepted = false;
 
   @override
   void dispose() {
@@ -128,8 +129,77 @@ class _CreateScreenState extends State<CreateScreen> {
     }
   }
 
+  Future<void> _showTermsDialog() async {
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Terms & Conditions'),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: const [
+              Text(
+                '1. Commission Policy',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                'A platform fee of 10% will be deducted from each ticket sale.',
+              ),
+              SizedBox(height: 8),
+              Text(
+                '2. Payment Gateway Charges',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                'A standard payment gateway fee (approx. 2%) is applicable on transactions.',
+              ),
+              SizedBox(height: 8),
+              Text(
+                '3. Settlements',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(
+                'The remaining amount (Ticket Price - Platform Fee - Gateway Fee) will be credited to your account.',
+              ),
+              SizedBox(height: 16),
+              Text(
+                'By creating an event, you agree to these payment terms.',
+                style: TextStyle(fontStyle: FontStyle.italic, fontSize: 12),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              setState(() {
+                _isTcAccepted = true;
+              });
+            },
+            child: const Text(
+              'I Agree',
+              style: TextStyle(color: Colors.orange),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   Future<void> _createEvent() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (!_isTcAccepted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please accept the Terms & Conditions'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      return;
+    }
 
     if (_selectedImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -451,6 +521,51 @@ class _CreateScreenState extends State<CreateScreen> {
                             prefixIcon: const Icon(
                               Icons.people,
                               color: Colors.orange,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Checkbox(
+                          value: _isTcAccepted,
+                          activeColor: Colors.orange,
+                          onChanged: (value) {
+                            setState(() {
+                              _isTcAccepted = value ?? false;
+                            });
+                          },
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: _showTermsDialog,
+                            child: RichText(
+                              text: const TextSpan(
+                                text: 'I agree to the ',
+                                style: TextStyle(
+                                  color: Colors.black,
+                                  fontSize: 14,
+                                ),
+                                children: [
+                                  TextSpan(
+                                    text: 'Terms & Conditions',
+                                    style: TextStyle(
+                                      color: Colors.orange,
+                                      fontWeight: FontWeight.bold,
+                                      decoration: TextDecoration.underline,
+                                    ),
+                                  ),
+                                  TextSpan(
+                                    text: ' (Required)',
+                                    style: TextStyle(
+                                      color: Colors.red,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
                           ),
                         ),

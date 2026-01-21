@@ -2,7 +2,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eventora/features/bookings/data/booking_model.dart';
 import 'package:eventora/features/scanner/scanner_result_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:mobile_scanner/mobile_scanner.dart';
+import 'package:qr_code_scanner/qr_code_scanner.dart';
 
 class QRScannerScreen extends StatefulWidget {
   const QRScannerScreen({super.key});
@@ -12,12 +12,13 @@ class QRScannerScreen extends StatefulWidget {
 }
 
 class _QRScannerScreenState extends State<QRScannerScreen> {
-  final MobileScannerController _controller = MobileScannerController();
+  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
+  QRViewController? controller;
   bool _isProcessing = false;
 
   @override
   void dispose() {
-    _controller.dispose();
+    controller?.dispose();
     super.dispose();
   }
 
@@ -34,6 +35,9 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
       }
 
       final bookingId = parts[0];
+
+      // Pause camera
+      await controller?.pauseCamera();
 
       // Fetch booking from Firestore
       final bookingDoc = await FirebaseFirestore.instance
@@ -56,6 +60,8 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
                 ScannerResultScreen(booking: booking, qrData: qrData),
           ),
         );
+        // Resume camera after returning
+        await controller?.resumeCamera();
       }
     } catch (e) {
       if (mounted) {
@@ -65,12 +71,22 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
             backgroundColor: Colors.red,
           ),
         );
+        await controller?.resumeCamera();
       }
     } finally {
       if (mounted) {
         setState(() => _isProcessing = false);
       }
     }
+  }
+
+  void _onQRViewCreated(QRViewController controller) {
+    this.controller = controller;
+    controller.scannedDataStream.listen((scanData) {
+      if (scanData.code != null && !_isProcessing) {
+        _processQRCode(scanData.code!);
+      }
+    });
   }
 
   @override
@@ -84,37 +100,29 @@ class _QRScannerScreenState extends State<QRScannerScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.flash_on),
-            onPressed: () => _controller.toggleTorch(),
+            onPressed: () async {
+              await controller?.toggleFlash();
+            },
           ),
           IconButton(
             icon: const Icon(Icons.flip_camera_ios),
-            onPressed: () => _controller.switchCamera(),
+            onPressed: () async {
+              await controller?.flipCamera();
+            },
           ),
         ],
       ),
       body: Stack(
         children: [
-          MobileScanner(
-            controller: _controller,
-            onDetect: (capture) {
-              final List<Barcode> barcodes = capture.barcodes;
-              for (final barcode in barcodes) {
-                if (barcode.rawValue != null) {
-                  _processQRCode(barcode.rawValue!);
-                  break;
-                }
-              }
-            },
-          ),
-          // Scanning overlay
-          Center(
-            child: Container(
-              width: 250,
-              height: 250,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.white, width: 3),
-                borderRadius: BorderRadius.circular(20),
-              ),
+          QRView(
+            key: qrKey,
+            onQRViewCreated: _onQRViewCreated,
+            overlay: QrScannerOverlayShape(
+              borderColor: Colors.white,
+              borderRadius: 20,
+              borderLength: 30,
+              borderWidth: 10,
+              cutOutSize: 250,
             ),
           ),
           // Instructions

@@ -49,10 +49,24 @@ class BookingBloc extends Bloc<BookingEvent, BookingState> {
     emit(BookingCreating());
 
     try {
+      // Calculate Splits
+      // Platform Fee: 10%
+      // Razorpay Fee: ~2% (Estimated)
+      // Organizer Earnings: Remaining
+      final double totalAmount = event.totalAmount;
+      final double platformFee = totalAmount * 0.10;
+      final double razorpayFee = totalAmount * 0.02;
+      final double organizerEarnings = totalAmount - platformFee - razorpayFee;
+
       await bookingRepository.createBooking(
         eventId: event.eventId,
         userId: event.userId,
         slotsBooked: event.slotsBooked,
+        paymentId: event.paymentId,
+        amountPaid: totalAmount.toInt(),
+        platformFee: platformFee,
+        razorpayFee: razorpayFee,
+        organizerEarnings: organizerEarnings,
       );
 
       await authRepository.incrementBookingsMade(event.userId);

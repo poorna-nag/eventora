@@ -20,15 +20,25 @@ class BookingCreateRequested extends BookingEvent {
   final String eventId;
   final String userId;
   final int slotsBooked;
+  final double totalAmount;
+  final String paymentId;
 
   const BookingCreateRequested({
     required this.eventId,
     required this.userId,
     required this.slotsBooked,
+    required this.totalAmount,
+    required this.paymentId,
   });
 
   @override
-  List<Object?> get props => [eventId, userId, slotsBooked];
+  List<Object?> get props => [
+    eventId,
+    userId,
+    slotsBooked,
+    totalAmount,
+    paymentId,
+  ];
 }
 
 class BookingCancelRequested extends BookingEvent {

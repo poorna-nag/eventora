@@ -3,12 +3,16 @@ import 'package:eventora/core/utils/date_formatter.dart';
 import 'package:eventora/core/widgets/custom_button.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_state.dart';
-import 'package:eventora/features/auth/presentation/bloc/auth_event.dart';
+
 import 'package:eventora/features/bookings/bloc/booking_bloc.dart';
 import 'package:eventora/features/bookings/bloc/booking_event.dart';
 import 'package:eventora/features/bookings/bloc/booking_state.dart';
 import 'package:eventora/features/bookings/data/booking_model.dart';
+import 'package:eventora/features/bookings/booking_success_screen.dart';
+import 'package:eventora/features/bookings/ticket_qr_screen.dart';
 import 'package:eventora/features/events/data/event_model.dart';
+import 'package:eventora/core/services/payment_service.dart';
+import 'package:razorpay_flutter/razorpay_flutter.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -28,6 +32,63 @@ class EventDetailsScreen extends StatefulWidget {
 
 class _EventDetailsScreenState extends State<EventDetailsScreen> {
   int _selectedPersons = 1;
+  final PaymentService _paymentService = PaymentService();
+
+  @override
+  void initState() {
+    super.initState();
+    _paymentService.initialize(
+      onSuccess: _handlePaymentSuccess,
+      onFailure: _handlePaymentError,
+      onExternalWallet: _handleExternalWallet,
+    );
+  }
+
+  @override
+  void dispose() {
+    _paymentService.dispose();
+    super.dispose();
+  }
+
+  void _handlePaymentSuccess(PaymentSuccessResponse response) {
+    if (!mounted) return;
+
+    final authState = context.read<AuthBloc>().state;
+    if (authState is! AuthAuthenticated) return;
+
+    final double totalAmount = (widget.event.price * _selectedPersons)
+        .toDouble();
+
+    context.read<BookingBloc>().add(
+      BookingCreateRequested(
+        eventId: widget.event.eventId,
+        userId: authState.user.uid,
+        slotsBooked: _selectedPersons,
+        totalAmount: totalAmount,
+        paymentId: response.paymentId ?? 'unknown_payment_id',
+      ),
+    );
+  }
+
+  void _handlePaymentError(PaymentFailureResponse response) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Payment Failed: ${response.message}'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+
+  void _handleExternalWallet(ExternalWalletResponse response) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('External Wallet Selected: ${response.walletName}'),
+        backgroundColor: Colors.blue,
+      ),
+    );
+  }
 
   void _handleBooking() {
     final authState = context.read<AuthBloc>().state;
@@ -45,12 +106,28 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       return;
     }
 
-    context.read<BookingBloc>().add(
-      BookingCreateRequested(
-        eventId: widget.event.eventId,
-        userId: authState.user.uid,
-        slotsBooked: _selectedPersons,
-      ),
+    // Skip payment for free events
+    if (widget.event.price == 0) {
+      context.read<BookingBloc>().add(
+        BookingCreateRequested(
+          eventId: widget.event.eventId,
+          userId: authState.user.uid,
+          slotsBooked: _selectedPersons,
+          totalAmount: 0,
+          paymentId: 'free_event_${DateTime.now().millisecondsSinceEpoch}',
+        ),
+      );
+      return;
+    }
+
+    _paymentService.openCheckout(
+      amount: (widget.event.price * _selectedPersons).toDouble(),
+      name: 'Eventora Booking',
+      description: 'Booking for ${widget.event.title}',
+      contact:
+          authState.user.phoneNumber ??
+          '', // You might want to get this from user profile if available
+      email: authState.user.email ?? '',
     );
   }
 
@@ -59,15 +136,19 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     return BlocListener<BookingBloc, BookingState>(
       listener: (context, state) {
         if (state is BookingCreated) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Booking successful!'),
-              backgroundColor: Colors.green,
+          // Navigate to success screen
+
+          // Navigate to success screen
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(
+              builder: (context) => BookingSuccessScreen(
+                event: widget.event,
+                ticketsBooked: _selectedPersons,
+                totalAmount: widget.event.price * _selectedPersons,
+              ),
             ),
           );
-          // Refresh auth so bookingsMade count is updated in profile
-          context.read<AuthBloc>().add(AuthCheckRequested());
-          Navigator.pop(context);
         } else if (state is BookingError) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text(state.message), backgroundColor: Colors.red),
@@ -250,6 +331,37 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
                             ),
                           ),
                         ],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => TicketQRScreen(
+                                booking: widget.existingBooking!,
+                              ),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.qr_code, color: Colors.white),
+                        label: const Text(
+                          'View Ticket QR',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.orange,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
                       ),
                     ),
                   ],
