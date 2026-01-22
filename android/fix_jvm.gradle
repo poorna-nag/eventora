@@ -1,37 +1,30 @@
 subprojects { project ->
     // Targeted Strategy
     
-    // 1. Identify "Modern" projects that MUST be 17
-    def isModern = (project.name == "app" || project.name == "razorpay_flutter" || project.name.startsWith("firebase") || project.name.startsWith("cloud_firestore"))
-    
     // 2. Identify "Legacy" projects that fail if forced to 17 (Java stuck at 11)
     def isLegacy = (project.name == "fluttertoast" || project.name == "qr_code_scanner")
 
     project.tasks.withType(JavaCompile).configureEach {
-        if (isModern) {
-            // Force Modern to 17
-            sourceCompatibility = "17"
-            targetCompatibility = "17"
-            options.release.set(17)
-        } else {
-            // For legacy, we let it be whatever it wants (usually 1.8 or 11), 
-            // OR we explicitly set it to 11 if we want consistency.
-            // Let's set to 11 to be safe, as the error said it was 11.
+        if (isLegacy) {
+            // Mobile ads and others might need older Java, or if explicitly marked legacy
             sourceCompatibility = "11"
             targetCompatibility = "11"
+        } else {
+            // Default to 17 for everything else (Modern, standard plugins, app)
+            sourceCompatibility = "17"
+            targetCompatibility = "17"
         }
     }
     
     project.tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).configureEach {
         kotlinOptions {
-            if (isModern) {
-                jvmTarget = "17"
+            if (isLegacy) {
+                 jvmTarget = "11"
             } else {
-                // Force Legacy Kotlin to match the Java 11 we see in the error
-                jvmTarget = "11"
+                 jvmTarget = "17"
             }
         }
     }
     
-    println "FixJVM: ${project.name} -> Modern: $isModern, Legacy: $isLegacy. Setting targets accordingly."
+    println "FixJVM: ${project.name} -> Legacy: $isLegacy. Targets set accordingly."
 }

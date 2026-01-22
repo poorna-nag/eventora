@@ -3,6 +3,7 @@
 import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
+import 'package:eventora/core/config/env.dart';
 
 /// Default [FirebaseOptions] for use with your Firebase apps.
 ///
@@ -49,22 +50,21 @@ class DefaultFirebaseOptions {
     }
   }
 
-  static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyCO5bgEYRyOxYTNeW5eUQXGqIag-39Rkdg',
-    appId: '1:315069840592:android:13976bf802aa54877572d5',
-    messagingSenderId: '315069840592',
-    projectId: 'eventora-d7ef2',
-    storageBucket: 'eventora-d7ef2.firebasestorage.app',
+  static final FirebaseOptions android = FirebaseOptions(
+    apiKey: Env.firebaseAndroidApiKey,
+    appId: Env.firebaseAndroidAppId,
+    messagingSenderId: Env.firebaseMessagingSenderId,
+    projectId: Env.firebaseProjectId,
+    storageBucket: Env.firebaseStorageBucket,
   );
 
-  static const FirebaseOptions ios = FirebaseOptions(
-    apiKey: 'AIzaSyA2my0TLEgWYJ2nxJvD-wAJzYzMYDUpeg8',
-    appId: '1:315069840592:ios:61303be7bad899e17572d5',
-    messagingSenderId: '315069840592',
-    projectId: 'eventora-d7ef2',
-    storageBucket: 'eventora-d7ef2.firebasestorage.app',
-    iosClientId: '315069840592-obk85h72lth362vuipn3b7n37inq2bf6.apps.googleusercontent.com',
-    iosBundleId: 'com.example.eventora',
+  static final FirebaseOptions ios = FirebaseOptions(
+    apiKey: Env.firebaseIosApiKey,
+    appId: Env.firebaseIosAppId,
+    messagingSenderId: Env.firebaseMessagingSenderId,
+    projectId: Env.firebaseProjectId,
+    storageBucket: Env.firebaseStorageBucket,
+    iosClientId: Env.firebaseIosClientId,
+    iosBundleId: Env.firebaseIosBundleId,
   );
-
 }

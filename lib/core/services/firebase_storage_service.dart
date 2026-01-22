@@ -13,9 +13,14 @@ class FirebaseStorageService {
           '${DateTime.now().millisecondsSinceEpoch}_${imageFile.path.split('/').last}';
       final ref = _storage.ref().child('$path/$fileName');
 
+      final String extension = imageFile.path.split('.').last.toLowerCase();
+      final String contentType = extension == 'png'
+          ? 'image/png'
+          : 'image/jpeg';
+
       // Add metadata to help with upload
       final metadata = SettableMetadata(
-        contentType: 'image/jpeg',
+        contentType: contentType,
         customMetadata: {'uploaded': DateTime.now().toIso8601String()},
       );
 

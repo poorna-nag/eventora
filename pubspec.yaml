@@ -28,11 +28,14 @@ dependencies:
   qr_flutter: ^4.1.0
   qr_code_scanner: ^1.0.1
   razorpay_flutter: ^1.4.0
+  envied: ^0.5.4+1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
+  envied_generator: ^0.5.4+1
+  build_runner: ^2.4.13
 
 
 flutter:

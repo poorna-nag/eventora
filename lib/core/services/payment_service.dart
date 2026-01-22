@@ -1,4 +1,5 @@
 import 'package:razorpay_flutter/razorpay_flutter.dart';
+import 'package:eventora/core/config/env.dart';
 
 class PaymentService {
   late Razorpay _razorpay;
@@ -42,15 +43,12 @@ class PaymentService {
     String? orderId,
   }) {
     var options = {
-      'key':
-          'rzp_test_PlaceHolder', // TODO: Replace with valid Test Key from User or Config
+      'key': Env.razorpayKey,
       'amount': (amount * 100).toInt(), // Amount in paise
+      'currency': 'INR',
       'name': name,
       'description': description,
       'prefill': {'contact': contact, 'email': email},
-      'external': {
-        'wallets': ['paytm'],
-      },
     };
 
     if (orderId != null) {

@@ -242,12 +242,12 @@ class _CreateScreenState extends State<CreateScreen> {
 
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
+            SnackBar(
               content: Text(
-                'Image upload failed. Using placeholder. Please check Firebase Storage rules.',
+                'Image upload failed: ${uploadError.toString().replaceAll('Exception: ', '')}. Using placeholder.',
               ),
               backgroundColor: Colors.orange,
-              duration: Duration(seconds: 4),
+              duration: const Duration(seconds: 4),
             ),
           );
         }
