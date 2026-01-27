@@ -1,4 +1,4 @@
-package com.example.eventora
+package com.poornanag.eventora
 
 import io.flutter.embedding.android.FlutterActivity
 

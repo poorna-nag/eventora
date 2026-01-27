@@ -3,9 +3,9 @@
 <plist version="1.0">
 <dict>
 	<key>CLIENT_ID</key>
-	<string>315069840592-obk85h72lth362vuipn3b7n37inq2bf6.apps.googleusercontent.com</string>
+	<string>315069840592-f5r34oobus7nr4ddcp5d8v97jnvuhgbk.apps.googleusercontent.com</string>
 	<key>REVERSED_CLIENT_ID</key>
-	<string>com.googleusercontent.apps.315069840592-obk85h72lth362vuipn3b7n37inq2bf6</string>
+	<string>com.googleusercontent.apps.315069840592-f5r34oobus7nr4ddcp5d8v97jnvuhgbk</string>
 	<key>API_KEY</key>
 	<string>AIzaSyA2my0TLEgWYJ2nxJvD-wAJzYzMYDUpeg8</string>
 	<key>GCM_SENDER_ID</key>
@@ -13,7 +13,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.example.eventora</string>
+	<string>com.poornanag.eventora</string>
 	<key>PROJECT_ID</key>
 	<string>eventora-d7ef2</string>
 	<key>STORAGE_BUCKET</key>
@@ -29,6 +29,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:315069840592:ios:61303be7bad899e17572d5</string>
+	<string>1:315069840592:ios:a1606a96172023ac7572d5</string>
 </dict>
 </plist>

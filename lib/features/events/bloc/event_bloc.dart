@@ -22,7 +22,20 @@ class EventBloc extends Bloc<EventEvent, EventState> {
 
     await emit.forEach<List<EventModel>>(
       eventRepository.getEventsStream(),
-      onData: (events) => EventLoaded(events: events),
+      onData: (events) {
+        final now = DateTime.now();
+        final futureEvents = events.where((event) {
+          final eventDateTime = DateTime(
+            event.date.year,
+            event.date.month,
+            event.date.day,
+            event.time.hour,
+            event.time.minute,
+          );
+          return eventDateTime.isAfter(now);
+        }).toList();
+        return EventLoaded(events: futureEvents);
+      },
       onError: (error, stackTrace) => EventError(message: error.toString()),
     );
   }

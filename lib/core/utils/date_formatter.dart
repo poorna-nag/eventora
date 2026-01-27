@@ -49,6 +49,9 @@ class DateFormatter {
     }
   }
 
+  // Alias for getRelativeTime to match usage in NotificationsScreen
+  static String getTimeAgo(DateTime dateTime) => getRelativeTime(dateTime);
+
   static String getUpcomingTime(DateTime dateTime) {
     final now = DateTime.now();
     final difference = dateTime.difference(now);

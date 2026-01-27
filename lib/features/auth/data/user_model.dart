@@ -7,12 +7,14 @@ class UserModel {
   final String? profileImageUrl;
   final String? phoneNumber;
   final String? bio;
+  final String? workplace;
   final List<String>? interests;
   final String? instagram;
   final String? twitter;
   final Timestamp? createdAt;
   final int eventsCreated;
   final int bookingsMade;
+  final bool? isAgeVerified;
 
   const UserModel({
     required this.uid,
@@ -21,12 +23,14 @@ class UserModel {
     this.profileImageUrl,
     this.phoneNumber,
     this.bio,
+    this.workplace,
     this.interests,
     this.instagram,
     this.twitter,
     this.createdAt,
     this.eventsCreated = 0,
     this.bookingsMade = 0,
+    this.isAgeVerified,
   });
 
   factory UserModel.fromJson(Map<String, dynamic> json) {
@@ -37,6 +41,7 @@ class UserModel {
       profileImageUrl: json['profileImageUrl'],
       phoneNumber: json['phoneNumber'],
       bio: json['bio'],
+      workplace: json['workplace'],
       interests: json['interests'] != null
           ? List<String>.from(json['interests'])
           : null,
@@ -45,6 +50,7 @@ class UserModel {
       createdAt: json['createdAt'],
       eventsCreated: json['eventsCreated'] ?? 0,
       bookingsMade: json['bookingsMade'] ?? 0,
+      isAgeVerified: json['isAgeVerified'],
     );
   }
 
@@ -56,12 +62,14 @@ class UserModel {
       'profileImageUrl': profileImageUrl,
       'phoneNumber': phoneNumber,
       'bio': bio,
+      'workplace': workplace,
       'interests': interests,
       'instagram': instagram,
       'twitter': twitter,
       'createdAt': createdAt ?? FieldValue.serverTimestamp(),
       'eventsCreated': eventsCreated,
       'bookingsMade': bookingsMade,
+      'isAgeVerified': isAgeVerified,
     };
   }
 
@@ -72,12 +80,14 @@ class UserModel {
     String? profileImageUrl,
     String? phoneNumber,
     String? bio,
+    String? workplace,
     List<String>? interests,
     String? instagram,
     String? twitter,
     Timestamp? createdAt,
     int? eventsCreated,
     int? bookingsMade,
+    bool? isAgeVerified,
   }) {
     return UserModel(
       uid: uid ?? this.uid,
@@ -86,12 +96,14 @@ class UserModel {
       profileImageUrl: profileImageUrl ?? this.profileImageUrl,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       bio: bio ?? this.bio,
+      workplace: workplace ?? this.workplace,
       interests: interests ?? this.interests,
       instagram: instagram ?? this.instagram,
       twitter: twitter ?? this.twitter,
       createdAt: createdAt ?? this.createdAt,
       eventsCreated: eventsCreated ?? this.eventsCreated,
       bookingsMade: bookingsMade ?? this.bookingsMade,
+      isAgeVerified: isAgeVerified ?? this.isAgeVerified,
     );
   }
 }

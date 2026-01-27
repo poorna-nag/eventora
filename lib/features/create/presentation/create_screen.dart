@@ -19,6 +19,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
+import 'package:eventora/features/notifications/data/notification_repository.dart';
 
 class CreateScreen extends StatefulWidget {
   const CreateScreen({super.key});
@@ -46,6 +47,7 @@ class _CreateScreenState extends State<CreateScreen> {
   List<String> _selectedCategories = [];
   bool _isLoadingLocation = false;
   bool _isTcAccepted = false;
+  bool _isPrivate = false;
 
   @override
   void dispose() {
@@ -268,7 +270,9 @@ class _CreateScreenState extends State<CreateScreen> {
         date: _selectedDate!,
         time: eventTime,
         venue: _venueController.text.trim(),
-        price: int.parse(_priceController.text),
+        price: _priceController.text.trim().isEmpty
+            ? 0
+            : int.parse(_priceController.text),
         totalSlots: int.parse(_personsController.text),
         availableSlots: int.parse(_personsController.text),
         createdBy: authState.user.uid,
@@ -277,10 +281,24 @@ class _CreateScreenState extends State<CreateScreen> {
             ? _selectedCategories
             : ['Other'],
         createdAt: Timestamp.now(),
+        isPrivate: _isPrivate,
       );
 
       context.read<EventBloc>().add(EventCreateRequested(event: event));
       await _authRepository.incrementEventsCreated(authState.user.uid);
+
+      // Trigger notification creation
+      try {
+        final creatorName = authState.user.name;
+        await NotificationRepository().createNotificationForEvent(
+          event.eventId,
+          event.title,
+          creatorName,
+        );
+      } catch (e) {
+        print('Failed to create notification: $e');
+      }
+
       // Refresh auth state so profile stats (eventsCreated) update
       if (mounted) {
         context.read<AuthBloc>().add(AuthCheckRequested());
@@ -351,10 +369,117 @@ class _CreateScreenState extends State<CreateScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // Private/Public Toggle
+                    const Text(
+                      'Event Type',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: Colors.grey.shade300),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _isPrivate = false;
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: !_isPrivate
+                                      ? Colors.orange
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.public,
+                                      color: !_isPrivate
+                                          ? Colors.white
+                                          : Colors.grey.shade600,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Public',
+                                      style: TextStyle(
+                                        color: !_isPrivate
+                                            ? Colors.white
+                                            : Colors.grey.shade600,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                          Expanded(
+                            child: GestureDetector(
+                              onTap: () {
+                                setState(() {
+                                  _isPrivate = true;
+                                });
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 12,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: _isPrivate
+                                      ? Colors.orange
+                                      : Colors.transparent,
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.lock,
+                                      color: _isPrivate
+                                          ? Colors.white
+                                          : Colors.grey.shade600,
+                                      size: 20,
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Text(
+                                      'Private',
+                                      style: TextStyle(
+                                        color: _isPrivate
+                                            ? Colors.white
+                                            : Colors.grey.shade600,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
                     GestureDetector(
                       onTap: _pickImage,
                       child: Container(
-                        height: 200,
+                        height: _selectedImage != null ? null : 200,
                         width: double.infinity,
                         decoration: BoxDecoration(
                           color: Colors.white,
@@ -366,7 +491,7 @@ class _CreateScreenState extends State<CreateScreen> {
                                 borderRadius: BorderRadius.circular(14),
                                 child: Image.file(
                                   _selectedImage!,
-                                  fit: BoxFit.cover,
+                                  fit: BoxFit.fitWidth,
                                 ),
                               )
                             : Column(
@@ -497,10 +622,8 @@ class _CreateScreenState extends State<CreateScreen> {
                         Expanded(
                           child: CustomTextField(
                             controller: _priceController,
-                            hintText: 'Price (₹)',
+                            hintText: '(₹) Price',
                             keyboardType: TextInputType.number,
-                            validator: (value) =>
-                                Validators.validateNumber(value, 'Price'),
                             prefixIcon: const Icon(
                               Icons.currency_rupee,
                               color: Colors.orange,
@@ -555,13 +678,6 @@ class _CreateScreenState extends State<CreateScreen> {
                                       color: Colors.orange,
                                       fontWeight: FontWeight.bold,
                                       decoration: TextDecoration.underline,
-                                    ),
-                                  ),
-                                  TextSpan(
-                                    text: ' (Required)',
-                                    style: TextStyle(
-                                      color: Colors.red,
-                                      fontSize: 12,
                                     ),
                                   ),
                                 ],

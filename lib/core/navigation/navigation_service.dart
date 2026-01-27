@@ -1,3 +1,4 @@
+import 'package:eventora/features/auth/presentation/age_verification_screen.dart';
 import 'package:eventora/features/auth/presentation/forgot_password_screen.dart';
 import 'package:eventora/features/auth/presentation/login_screen.dart';
 import 'package:eventora/features/auth/presentation/signup_screen.dart';
@@ -76,6 +77,12 @@ class NavigationService {
           settings: settings,
         );
 
+      case AppRoutes.ageVerification:
+        return MaterialPageRoute(
+          builder: (_) => const AgeVerificationScreen(),
+          settings: settings,
+        );
+
       default:
         return MaterialPageRoute(
           builder: (_) => const SplashScreen(),
@@ -98,4 +105,5 @@ class AppRoutes {
   static const String myBookings = "/my-bookings";
   static const String profile = "/profile";
   static const String editProfile = "/edit-profile";
+  static const String ageVerification = "/age-verification";
 }

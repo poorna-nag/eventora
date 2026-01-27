@@ -1,12 +1,10 @@
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:eventora/core/services/location_service.dart';
 import 'package:eventora/core/widgets/event_card.dart';
-import 'package:eventora/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:eventora/features/auth/presentation/bloc/auth_state.dart';
 import 'package:eventora/features/events/bloc/event_bloc.dart';
 import 'package:eventora/features/events/bloc/event_event.dart';
 import 'package:eventora/features/events/bloc/event_state.dart';
 import 'package:eventora/features/events/event_details_screen.dart';
+import 'package:eventora/features/notifications/presentation/notifications_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -72,14 +70,6 @@ class _HomeViewScreenState extends State<HomeViewScreen> {
           setState(() {
             _currentAddress = address;
           });
-
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Location: $address'),
-              backgroundColor: Colors.green,
-              duration: const Duration(seconds: 2),
-            ),
-          );
         }
       }
     } catch (e) {
@@ -124,7 +114,7 @@ class _HomeViewScreenState extends State<HomeViewScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // backgroundColor: const Color(0xFFF6F6F6),
+      backgroundColor: Colors.white,
       body: SafeArea(
         child: Column(
           children: [
@@ -134,7 +124,7 @@ class _HomeViewScreenState extends State<HomeViewScreen> {
               child: Row(
                 children: [
                   Text(
-                    'Eventora',
+                    'Eventora¹⁸⁺',
                     style: GoogleFonts.aboreto(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -143,92 +133,29 @@ class _HomeViewScreenState extends State<HomeViewScreen> {
                   ),
 
                   const Spacer(),
-                  // Profile Picture
-                  BlocBuilder<AuthBloc, AuthState>(
-                    builder: (context, state) {
-                      if (state is AuthAuthenticated) {
-                        return GestureDetector(
-                          onTap: () {
-                            // Navigate to profile
-                            DefaultTabController.of(context).animateTo(3);
-                          },
-                          child: CircleAvatar(
-                            radius: 20,
-                            backgroundColor: Colors.grey.shade300,
-                            backgroundImage: state.user.profileImageUrl != null
-                                ? CachedNetworkImageProvider(
-                                    state.user.profileImageUrl!,
-                                  )
-                                : null,
-                            child: state.user.profileImageUrl == null
-                                ? const Icon(Icons.person, color: Colors.white)
-                                : null,
-                          ),
-                        );
-                      }
-                      return CircleAvatar(
-                        radius: 20,
-                        backgroundColor: Colors.grey.shade300,
-                        child: const Icon(Icons.person, color: Colors.white),
+                  // Notification Icon
+                  GestureDetector(
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationsScreen(),
+                        ),
                       );
                     },
-                  ),
-                  const SizedBox(width: 12),
-                  // Filter Button with Badge
-                  Stack(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.grey.shade100,
-                          borderRadius: BorderRadius.circular(20),
-                        ),
-                        child: GestureDetector(
-                          onTap: _showFilterDialog,
-                          child: Row(
-                            children: [
-                              Icon(
-                                Icons.tune,
-                                size: 20,
-                                color: Colors.grey.shade700,
-                              ),
-                              const SizedBox(width: 4),
-                            ],
-                          ),
-                        ),
+                    child: Container(
+                      padding: const EdgeInsets.all(8),
+
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.grey.shade300),
                       ),
-                      if (_selectedCategories.isNotEmpty ||
-                          _minPrice != null ||
-                          _maxPrice != null ||
-                          _startDate != null)
-                        Positioned(
-                          right: 0,
-                          top: 0,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            decoration: const BoxDecoration(
-                              color: Colors.red,
-                              shape: BoxShape.circle,
-                            ),
-                            constraints: const BoxConstraints(
-                              minWidth: 16,
-                              minHeight: 16,
-                            ),
-                            child: Text(
-                              '${_selectedCategories.length + (_minPrice != null ? 1 : 0) + (_maxPrice != null ? 1 : 0) + (_startDate != null ? 1 : 0)}',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontSize: 10,
-                                fontWeight: FontWeight.bold,
-                              ),
-                              textAlign: TextAlign.center,
-                            ),
-                          ),
-                        ),
-                    ],
+                      child: const Icon(
+                        Icons.notifications_outlined,
+                        color: Colors.orange,
+                        size: 24,
+                      ),
+                    ),
                   ),
                 ],
               ),
@@ -239,72 +166,130 @@ class _HomeViewScreenState extends State<HomeViewScreen> {
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Column(
                 children: [
-                  TextField(
-                    controller: _searchController,
-                    onChanged: (value) {
-                      context.read<EventBloc>().add(
-                        EventSearchChanged(query: value),
-                      );
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Search events...',
-                      prefixIcon: const Icon(Icons.search, color: Colors.grey),
-                      filled: true,
-                      fillColor: Colors.grey.shade100,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  // Current Location Button
+                  // Current Location Button - Full width, left aligned, no border
                   GestureDetector(
                     onTap: _getCurrentLocation,
                     child: Container(
+                      width: double.infinity,
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 16,
-                        vertical: 12,
-                      ),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF3B5BD6),
-                        borderRadius: BorderRadius.circular(12),
+                        horizontal: 4,
+                        vertical: 8,
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.location_on,
-                            color: Colors.white,
-                            size: 20,
+                            color: Colors.orange,
+                            size: 18,
                           ),
-                          const SizedBox(width: 8),
-                          Expanded(
+                          const SizedBox(width: 6),
+                          Flexible(
                             child: Text(
                               _isLoadingLocation
                                   ? 'Getting location...'
-                                  : _currentAddress ?? 'Get current location',
-                              style: const TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
+                                  : _currentAddress ?? 'Current location',
+                              style: TextStyle(
+                                color: Colors.grey.shade700,
+                                fontWeight: FontWeight.w500,
+                                fontSize: 13,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
                           ),
-                          if (_isLoadingLocation)
-                            const SizedBox(
-                              width: 16,
-                              height: 16,
+                          if (_isLoadingLocation) ...[
+                            const SizedBox(width: 8),
+                            SizedBox(
+                              width: 14,
+                              height: 14,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: Colors.orange,
                               ),
                             ),
+                          ],
                         ],
                       ),
                     ),
+                  ),
+                  const SizedBox(height: 16),
+                  // Search Field with Round Button
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (value) {
+                            context.read<EventBloc>().add(
+                              EventSearchChanged(query: value),
+                            );
+                          },
+                          decoration: InputDecoration(
+                            hintText: 'Search events...',
+                            hintStyle: TextStyle(
+                              color: Colors.grey.shade400,
+                              fontSize: 14,
+                            ),
+                            prefixIcon: Icon(
+                              Icons.search,
+                              color: Colors.grey.shade400,
+                              size: 22,
+                            ),
+                            filled: true,
+                            fillColor: Colors.white,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(25),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade300,
+                                width: 1,
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(25),
+                              borderSide: BorderSide(
+                                color: Colors.grey.shade300,
+                                width: 1,
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(25),
+                              borderSide: const BorderSide(
+                                color: Colors.orange,
+                                width: 2,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      // Round Filter Button
+                      Container(
+                        decoration: BoxDecoration(
+                          color: Colors.orange,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.orange.withOpacity(0.3),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.tune,
+                            color: Colors.white,
+                            size: 22,
+                          ),
+                          onPressed: _showFilterDialog,
+                          tooltip: 'Filter',
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),

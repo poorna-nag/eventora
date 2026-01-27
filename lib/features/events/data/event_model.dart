@@ -17,6 +17,7 @@ class EventModel {
   final double? latitude;
   final double? longitude;
   final String? address;
+  final bool isPrivate;
 
   const EventModel({
     required this.eventId,
@@ -35,6 +36,7 @@ class EventModel {
     this.latitude,
     this.longitude,
     this.address,
+    this.isPrivate = false,
   });
 
   factory EventModel.fromJson(Map<String, dynamic> json) {
@@ -57,7 +59,13 @@ class EventModel {
       latitude: json['latitude']?.toDouble(),
       longitude: json['longitude']?.toDouble(),
       address: json['address'],
+      isPrivate: json['isPrivate'] ?? false,
     );
+  }
+
+  factory EventModel.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
+    return EventModel.fromJson(data).copyWith(eventId: doc.id);
   }
 
   Map<String, dynamic> toJson() {
@@ -78,6 +86,7 @@ class EventModel {
       'latitude': latitude,
       'longitude': longitude,
       'address': address,
+      'isPrivate': isPrivate,
     };
   }
 
@@ -98,6 +107,7 @@ class EventModel {
     double? latitude,
     double? longitude,
     String? address,
+    bool? isPrivate,
   }) {
     return EventModel(
       eventId: eventId ?? this.eventId,
@@ -116,6 +126,7 @@ class EventModel {
       latitude: latitude ?? this.latitude,
       longitude: longitude ?? this.longitude,
       address: address ?? this.address,
+      isPrivate: isPrivate ?? this.isPrivate,
     );
   }
 }

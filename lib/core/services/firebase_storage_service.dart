@@ -2,7 +2,10 @@ import 'dart:io';
 import 'package:firebase_storage/firebase_storage.dart';
 
 class FirebaseStorageService {
-  final FirebaseStorage _storage = FirebaseStorage.instance;
+  // Explicitly using the bucket to avoid potential config issues on some platforms
+  final FirebaseStorage _storage = FirebaseStorage.instanceFor(
+    bucket: 'gs://eventora-d7ef2.firebasestorage.app',
+  );
 
   Future<String> uploadImage({
     required File imageFile,
@@ -13,19 +16,13 @@ class FirebaseStorageService {
           '${DateTime.now().millisecondsSinceEpoch}_${imageFile.path.split('/').last}';
       final ref = _storage.ref().child('$path/$fileName');
 
-      final String extension = imageFile.path.split('.').last.toLowerCase();
-      final String contentType = extension == 'png'
-          ? 'image/png'
-          : 'image/jpeg';
-
-      // Add metadata to help with upload
-      final metadata = SettableMetadata(
-        contentType: contentType,
-        customMetadata: {'uploaded': DateTime.now().toIso8601String()},
-      );
-
       print('Uploading image to: $path/$fileName');
-      final uploadTask = await ref.putFile(imageFile, metadata);
+      // Read file as bytes to avoid iOS file path access issues (Error 40)
+      final bytes = await imageFile.readAsBytes();
+      final uploadTask = await ref.putData(
+        bytes,
+        SettableMetadata(contentType: 'image/jpeg'),
+      );
       final downloadUrl = await uploadTask.ref.getDownloadURL();
       print('Upload successful: $downloadUrl');
 

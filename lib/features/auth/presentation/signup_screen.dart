@@ -3,6 +3,8 @@ import 'package:eventora/core/navigation/navigation_service.dart';
 import 'package:eventora/core/utils/validators.dart';
 import 'package:eventora/core/widgets/custom_button.dart';
 import 'package:eventora/core/widgets/custom_text_field.dart';
+import 'package:eventora/core/widgets/safety_warning_dialog.dart';
+import 'package:eventora/core/widgets/terms_and_conditions_dialog.dart';
 import 'package:eventora/features/auth/data/auth_service.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_event.dart';
@@ -49,23 +51,56 @@ class _SignUpScreenState extends State<SignUpScreen> {
       );
 
       if (mounted) {
-        // Update AuthBloc so the app knows the user is authenticated
-        // right after signup.
-        context.read<AuthBloc>().add(AuthCheckRequested());
-        NavigationService.pushReplacementNamed(routeName: AppRoutes.home);
+        setState(() => _isLoading = false);
+
+        // Show Terms & Conditions dialog
+        final accepted = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => TermsAndConditionsDialog(
+            onAccept: () async {
+              // Show Safety Warning after accepting terms
+              await showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => SafetyWarningDialog(
+                  onAcknowledge: () {
+                    // Update AuthBloc after acknowledging safety warning
+                    context.read<AuthBloc>().add(AuthCheckRequested());
+                    NavigationService.pushReplacementNamed(
+                      routeName: AppRoutes.ageVerification,
+                    );
+                  },
+                ),
+              );
+            },
+          ),
+        );
+
+        // If user declined terms, delete account and sign them out
+        if (accepted == false || accepted == null) {
+          await _authService.signOut();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'You must accept the Terms & Conditions to use this app',
+                ),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString().replaceAll('Exception: ', '')),
             backgroundColor: Colors.red,
           ),
         );
-      }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
       }
     }
   }
@@ -91,10 +126,7 @@ class _SignUpScreenState extends State<SignUpScreen> {
                 const SizedBox(height: 8),
                 const Text(
                   "Join us and start exploring events",
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontSize: 16,
-                  ),
+                  style: TextStyle(color: Colors.white70, fontSize: 16),
                 ),
                 const SizedBox(height: 40),
                 Container(
@@ -173,11 +205,15 @@ class _SignUpScreenState extends State<SignUpScreen> {
             prefixIcon: const Icon(Icons.lock_outline, color: Colors.orange),
             suffixIcon: IconButton(
               icon: Icon(
-                _obscureConfirmPassword ? Icons.visibility_off : Icons.visibility,
+                _obscureConfirmPassword
+                    ? Icons.visibility_off
+                    : Icons.visibility,
                 color: Colors.grey,
               ),
               onPressed: () {
-                setState(() => _obscureConfirmPassword = !_obscureConfirmPassword);
+                setState(
+                  () => _obscureConfirmPassword = !_obscureConfirmPassword,
+                );
               },
             ),
           ),

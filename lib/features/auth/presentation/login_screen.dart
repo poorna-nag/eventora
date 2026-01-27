@@ -3,6 +3,8 @@ import 'package:eventora/core/navigation/navigation_service.dart';
 import 'package:eventora/core/utils/validators.dart';
 import 'package:eventora/core/widgets/custom_button.dart';
 import 'package:eventora/core/widgets/custom_text_field.dart';
+import 'package:eventora/core/widgets/safety_warning_dialog.dart';
+import 'package:eventora/core/widgets/terms_and_conditions_dialog.dart';
 import 'package:eventora/features/auth/data/auth_service.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_event.dart';
@@ -43,13 +45,58 @@ class _LoginScreenState extends State<LoginScreen> {
       );
 
       if (mounted) {
-        // Update AuthBloc so other screens (e.g. CreateScreen) see the user
-        // as authenticated immediately after login.
-        context.read<AuthBloc>().add(AuthCheckRequested());
-        NavigationService.pushReplacementNamed(routeName: AppRoutes.home);
+        setState(() => _isLoading = false);
+
+        // Show Terms & Conditions dialog
+        final accepted = await showDialog<bool>(
+          context: context,
+          barrierDismissible: false,
+          builder: (context) => TermsAndConditionsDialog(
+            onAccept: () async {
+              // Show Safety Warning after accepting terms
+              await showDialog(
+                context: context,
+                barrierDismissible: false,
+                builder: (context) => SafetyWarningDialog(
+                  onAcknowledge: () {
+                    // Update AuthBloc checking
+                    if (mounted) {
+                      context.read<AuthBloc>().add(AuthCheckRequested());
+                      _checkAgeAndNavigate();
+                    }
+                  },
+                ),
+              );
+            },
+          ),
+        );
+
+        // If user declined terms (accepted is null or false), sign them out locally
+        // Note: Terms dialog returning null implies dismissal without accept
+        // But barrierDismissible is false, so they must check box and Accept
+        // However, if they somehow close it...
+
+        // Actually, logic above waits for showDialog.
+        // If they accept, onAccept runs.
+        // The dialog itself returns result.
+
+        if (accepted == false || accepted == null) {
+          await _authService.signOut();
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'You must accept the Terms & Conditions to use this app',
+                ),
+                backgroundColor: Colors.orange,
+              ),
+            );
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
+        setState(() => _isLoading = false);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString().replaceAll('Exception: ', '')),
@@ -57,10 +104,26 @@ class _LoginScreenState extends State<LoginScreen> {
           ),
         );
       }
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _checkAgeAndNavigate() async {
+    try {
+      final userData = await _authService.getCurrentUserData();
+      if (!mounted) return;
+
+      if (userData != null && userData.isAgeVerified == true) {
+        NavigationService.pushReplacementNamed(routeName: AppRoutes.home);
+      } else {
+        NavigationService.pushReplacementNamed(
+          routeName: AppRoutes.ageVerification,
+        );
       }
+    } catch (e) {
+      // Fallback
+      NavigationService.pushReplacementNamed(
+        routeName: AppRoutes.ageVerification,
+      );
     }
   }
 

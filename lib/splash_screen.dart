@@ -2,7 +2,6 @@ import 'dart:ui';
 import 'package:eventora/core/app_const/auth_background.dart';
 import 'package:eventora/core/navigation/navigation_service.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_bloc.dart';
-import 'package:eventora/features/auth/presentation/bloc/auth_event.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -15,12 +14,17 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
+  bool _hasNavigated = false;
+
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(seconds: 5), () {
-      if (mounted) {
-        context.read<AuthBloc>().add(AuthCheckRequested());
+    // The AuthCheckRequested is already called in main.dart,
+    // but we add a timeout here just in case or if we want a minimum splash time.
+    Future.delayed(const Duration(seconds: 3), () {
+      if (mounted && !_hasNavigated) {
+        // If it hasn't navigated yet, it might be stuck or still loading.
+        // We can optionally retry check here, but the BlocProvider already started it.
       }
     });
   }
@@ -29,9 +33,19 @@ class _SplashScreenState extends State<SplashScreen> {
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
+        if (_hasNavigated) return;
+
         if (state is AuthAuthenticated) {
-          NavigationService.pushReplacementNamed(routeName: AppRoutes.home);
+          _hasNavigated = true;
+          if (state.user.isAgeVerified == true) {
+            NavigationService.pushReplacementNamed(routeName: AppRoutes.home);
+          } else {
+            NavigationService.pushReplacementNamed(
+              routeName: AppRoutes.ageVerification,
+            );
+          }
         } else if (state is AuthUnauthenticated) {
+          _hasNavigated = true;
           NavigationService.pushReplacementNamed(routeName: AppRoutes.login);
         }
       },
@@ -50,7 +64,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   _logo(),
                   const SizedBox(height: 24),
                   const Text(
-                    "Eventora",
+                    "EventorA¹⁸⁺",
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,

@@ -16,10 +16,34 @@ class AuthRepository {
     final user = currentUser;
     if (user == null) return null;
 
-    final doc = await _firestore.collection('users').doc(user.uid).get();
-    if (!doc.exists) return null;
+    try {
+      // Add timeout to prevent hanging on splash screen
+      final doc = await _firestore
+          .collection('users')
+          .doc(user.uid)
+          .get()
+          .timeout(const Duration(seconds: 10));
 
-    return UserModel.fromJson(doc.data()!);
+      if (!doc.exists) return null;
+
+      return UserModel.fromJson(doc.data()!);
+    } catch (e) {
+      // If time out or error, return null so we don't get stuck in loading state
+      print('Error getting user data: $e');
+      return null;
+    }
+  }
+
+  // Get user data by ID (for displaying host info, etc.)
+  Future<UserModel?> getUserData(String userId) async {
+    try {
+      final doc = await _firestore.collection('users').doc(userId).get();
+      if (!doc.exists) return null;
+      return UserModel.fromJson(doc.data()!);
+    } catch (e) {
+      print('Error getting user data: $e');
+      return null;
+    }
   }
 
   Future<UserModel> signUp({
@@ -202,6 +226,16 @@ class AuthRepository {
     await _firestore.collection('users').doc(user.uid).update({
       if (name != null) 'name': name,
       if (profileImageUrl != null) 'profileImageUrl': profileImageUrl,
+    });
+  }
+
+  // Set Age Verified
+  Future<void> verifyAge() async {
+    final user = currentUser;
+    if (user == null) throw Exception('No user logged in');
+
+    await _firestore.collection('users').doc(user.uid).update({
+      'isAgeVerified': true,
     });
   }
 
