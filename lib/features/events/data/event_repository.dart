@@ -6,7 +6,10 @@ class EventRepository {
 
   Future<String> createEvent(EventModel event) async {
     try {
-      final docRef = _firestore.collection('events').doc();
+      final docRef = event.eventId.isNotEmpty
+          ? _firestore.collection('events').doc(event.eventId)
+          : _firestore.collection('events').doc();
+
       final eventWithId = event.copyWith(eventId: docRef.id);
 
       await docRef.set(eventWithId.toJson());

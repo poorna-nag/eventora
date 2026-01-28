@@ -1,7 +1,8 @@
+import 'package:eventora/core/app_const/app_colors.dart';
+import 'package:eventora/core/app_const/app_strings.dart';
 import 'package:eventora/core/app_const/auth_background.dart';
 import 'package:eventora/core/navigation/navigation_service.dart';
 import 'package:eventora/core/widgets/custom_button.dart';
-import 'package:eventora/features/auth/data/repo/auth_repo_impl.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_event.dart';
 import 'package:flutter/material.dart';
@@ -16,24 +17,24 @@ class AgeVerificationScreen extends StatefulWidget {
 }
 
 class _AgeVerificationScreenState extends State<AgeVerificationScreen> {
-  final AuthRepository _authRepository = AuthRepository();
   bool _isLoading = false;
 
   Future<void> _handleAgeConfirmation(bool isOver18) async {
+    final authRepo = context.read<AuthBloc>().authRepository;
+
     if (isOver18) {
       setState(() => _isLoading = true);
       try {
-        await _authRepository.verifyAge();
+        await authRepo.verifyAge();
         if (mounted) {
-          // Refresh auth state to update currentUser and then navigate home
           context.read<AuthBloc>().add(AuthCheckRequested());
           NavigationService.pushReplacementNamed(routeName: AppRoutes.home);
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${AppStrings.unknownError}: $e')),
+          );
         }
       } finally {
         if (mounted) {
@@ -41,15 +42,14 @@ class _AgeVerificationScreenState extends State<AgeVerificationScreen> {
         }
       }
     } else {
-      // User is under 18
-      await _authRepository.signOut();
+      await authRepo.signOut();
       if (mounted) {
         context.read<AuthBloc>().add(AuthCheckRequested());
         NavigationService.pushReplacementNamed(routeName: AppRoutes.login);
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('You must be 18+ to use this app.'),
-            backgroundColor: Colors.red,
+            content: Text(AppStrings.underAgeError),
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -69,7 +69,7 @@ class _AgeVerificationScreenState extends State<AgeVerificationScreen> {
                 Container(
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: AppColors.background,
                     borderRadius: BorderRadius.circular(24),
                     boxShadow: [
                       BoxShadow(
@@ -85,20 +85,20 @@ class _AgeVerificationScreenState extends State<AgeVerificationScreen> {
                       const Icon(
                         Icons.verified_user_outlined,
                         size: 60,
-                        color: Colors.orange,
+                        color: AppColors.iconColor,
                       ),
                       const SizedBox(height: 24),
                       Text(
-                        'Age Verification',
+                        AppStrings.ageVerificationTitle,
                         style: GoogleFonts.poppins(
                           fontSize: 24,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: AppColors.textHeadline,
                         ),
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Are you 18 years of age or older?',
+                        AppStrings.ageVerificationQuestion,
                         textAlign: TextAlign.center,
                         style: GoogleFonts.poppins(
                           fontSize: 16,
@@ -107,7 +107,7 @@ class _AgeVerificationScreenState extends State<AgeVerificationScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'This app contains content suitable only for adults.',
+                        AppStrings.ageWarning,
                         textAlign: TextAlign.center,
                         style: GoogleFonts.poppins(
                           fontSize: 12,
@@ -116,14 +116,14 @@ class _AgeVerificationScreenState extends State<AgeVerificationScreen> {
                       ),
                       const SizedBox(height: 32),
                       CustomButton(
-                        text: 'Yes, I am 18+',
+                        text: AppStrings.yesOver18,
                         onPressed: () => _handleAgeConfirmation(true),
                         isLoading: _isLoading,
-                        backgroundColor: Colors.orange,
+                        backgroundColor: AppColors.iconColor,
                       ),
                       const SizedBox(height: 16),
                       CustomButton(
-                        text: 'No, I am under 18',
+                        text: AppStrings.noUnder18,
                         onPressed: () => _handleAgeConfirmation(false),
                         backgroundColor: Colors.grey.shade200,
                         textColor: Colors.black87,

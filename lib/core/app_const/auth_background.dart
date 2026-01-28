@@ -1,3 +1,4 @@
+import 'package:eventora/core/app_const/app_colors.dart';
 import 'package:flutter/material.dart';
 
 class AuthBackground extends StatelessWidget {
@@ -15,7 +16,7 @@ class AuthBackground extends StatelessWidget {
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [Color(0xFF3B5BD6), Color(0xFF7A3EE6), Color(0xFF9A4EDB)],
+            colors: AppColors.authGradient,
           ),
         ),
         child: Stack(

@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eventora/features/auth/data/user_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:eventora/core/app_const/app_strings.dart';
 
 class AuthRepository {
   final FirebaseAuth _auth = FirebaseAuth.instance;
@@ -17,7 +18,6 @@ class AuthRepository {
     if (user == null) return null;
 
     try {
-      // Add timeout to prevent hanging on splash screen
       final doc = await _firestore
           .collection('users')
           .doc(user.uid)
@@ -28,20 +28,18 @@ class AuthRepository {
 
       return UserModel.fromJson(doc.data()!);
     } catch (e) {
-      // If time out or error, return null so we don't get stuck in loading state
-      print('Error getting user data: $e');
+      print('AuthRepo: Error getting user data: $e');
       return null;
     }
   }
 
-  // Get user data by ID (for displaying host info, etc.)
   Future<UserModel?> getUserData(String userId) async {
     try {
       final doc = await _firestore.collection('users').doc(userId).get();
       if (!doc.exists) return null;
       return UserModel.fromJson(doc.data()!);
     } catch (e) {
-      print('Error getting user data: $e');
+      print('AuthRepo: Error getting user data: $e');
       return null;
     }
   }
@@ -50,7 +48,6 @@ class AuthRepository {
     required String name,
     required String email,
     required String password,
-    amc,
   }) async {
     try {
       final userCredential = await _auth.createUserWithEmailAndPassword(
@@ -93,7 +90,7 @@ class AuthRepository {
       final doc = await _firestore.collection('users').doc(user.uid).get();
 
       if (!doc.exists) {
-        throw Exception('User data not found');
+        throw Exception(AppStrings.userNotFound);
       }
 
       return UserModel.fromJson(doc.data()!);
@@ -102,7 +99,6 @@ class AuthRepository {
     }
   }
 
-  // Phone Verification - Send OTP
   Future<void> verifyPhoneNumber({
     required String phoneNumber,
     required Function(String verificationId) onCodeSent,
@@ -114,7 +110,6 @@ class AuthRepository {
         phoneNumber: phoneNumber,
         timeout: const Duration(seconds: 60),
         verificationCompleted: (PhoneAuthCredential credential) async {
-          // Auto-verification (Android only)
           final userCredential = await _auth.signInWithCredential(credential);
           onAutoVerify(userCredential);
         },
@@ -125,9 +120,7 @@ class AuthRepository {
           _resendToken = resendToken;
           onCodeSent(verificationId);
         },
-        codeAutoRetrievalTimeout: (String verificationId) {
-          // Timeout handled
-        },
+        codeAutoRetrievalTimeout: (String verificationId) {},
         forceResendingToken: _resendToken,
       );
     } catch (e) {
@@ -135,7 +128,6 @@ class AuthRepository {
     }
   }
 
-  // Verify OTP and Sign In
   Future<UserModel> verifyOTP({
     required String verificationId,
     required String otp,
@@ -150,16 +142,13 @@ class AuthRepository {
       final userCredential = await _auth.signInWithCredential(credential);
       final user = userCredential.user!;
 
-      // Check if user exists
       final doc = await _firestore.collection('users').doc(user.uid).get();
 
       if (doc.exists) {
-        // Existing user
         return UserModel.fromJson(doc.data()!);
       } else {
-        // New user - create profile
         if (name == null || name.isEmpty) {
-          throw Exception('Name is required for new users');
+          throw Exception(AppStrings.nameRequired);
         }
 
         final userModel = UserModel(
@@ -182,7 +171,6 @@ class AuthRepository {
     }
   }
 
-  // Resend OTP
   Future<void> resendOTP({
     required String phoneNumber,
     required Function(String verificationId) onCodeSent,
@@ -196,24 +184,36 @@ class AuthRepository {
     );
   }
 
-  // Password Reset
   Future<void> resetPassword({required String email}) async {
     try {
+      final userQuery = await _firestore
+          .collection('users')
+          .where('email', isEqualTo: email)
+          .get();
+
+      if (userQuery.docs.isEmpty) {
+        throw FirebaseAuthException(
+          code: 'user-not-found',
+          message: AppStrings.userNotFound,
+        );
+      }
+
       await _auth.sendPasswordResetEmail(email: email);
     } on FirebaseAuthException catch (e) {
       throw _handleAuthException(e);
+    } catch (e) {
+      if (e is FirebaseAuthException) rethrow;
+      throw Exception(AppStrings.unknownError);
     }
   }
 
-  // Sign Out
   Future<void> signOut() async {
     await _auth.signOut();
   }
 
-  // Update Profile
   Future<void> updateProfile({String? name, String? profileImageUrl}) async {
     final user = currentUser;
-    if (user == null) throw Exception('No user logged in');
+    if (user == null) return;
 
     if (name != null) {
       await user.updateDisplayName(name);
@@ -229,61 +229,45 @@ class AuthRepository {
     });
   }
 
-  // Set Age Verified
   Future<void> verifyAge() async {
     final user = currentUser;
-    if (user == null) throw Exception('No user logged in');
+    if (user == null) return;
 
     await _firestore.collection('users').doc(user.uid).update({
       'isAgeVerified': true,
     });
   }
 
-  // Increment Events Created
   Future<void> incrementEventsCreated(String userId) async {
     await _firestore.collection('users').doc(userId).update({
       'eventsCreated': FieldValue.increment(1),
     });
   }
 
-  // Increment Bookings Made
   Future<void> incrementBookingsMade(String userId) async {
     await _firestore.collection('users').doc(userId).update({
       'bookingsMade': FieldValue.increment(1),
     });
   }
 
-  // Handle Auth Exceptions
   String _handleAuthException(FirebaseAuthException e) {
     switch (e.code) {
       case 'weak-password':
-        return 'The password provided is too weak';
+        return AppStrings.weakPassword;
       case 'email-already-in-use':
-        return 'An account already exists for that email';
+        return AppStrings.emailInUse;
       case 'user-not-found':
-        return 'No user found for that email';
+        return AppStrings.userNotFound;
       case 'wrong-password':
-        return 'Wrong password provided';
+        return AppStrings.wrongPassword;
       case 'invalid-email':
-        return 'Invalid email address';
+        return AppStrings.invalidEmail;
       case 'user-disabled':
-        return 'This user has been disabled';
+        return AppStrings.userDisabled;
       case 'too-many-requests':
-        return 'Too many requests. Please try again later';
-      case 'operation-not-allowed':
-        return 'Operation not allowed';
-      case 'invalid-verification-code':
-        return 'Invalid OTP code. Please try again';
-      case 'invalid-verification-id':
-        return 'Verification session expired. Please resend OTP';
-      case 'session-expired':
-        return 'OTP session expired. Please request a new code';
-      case 'quota-exceeded':
-        return 'SMS quota exceeded. Please try again later';
-      case 'invalid-phone-number':
-        return 'Invalid phone number format';
+        return AppStrings.tooManyRequests;
       default:
-        return e.message ?? 'An error occurred';
+        return e.message ?? AppStrings.unknownError;
     }
   }
 }

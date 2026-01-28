@@ -263,8 +263,10 @@ class _CreateScreenState extends State<CreateScreen> {
         _selectedTime!.minute,
       );
 
+      final eventId = FirebaseFirestore.instance.collection('events').doc().id;
+
       final event = EventModel(
-        eventId: '',
+        eventId: eventId,
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         date: _selectedDate!,
@@ -291,7 +293,7 @@ class _CreateScreenState extends State<CreateScreen> {
       try {
         final creatorName = authState.user.name;
         await NotificationRepository().createNotificationForEvent(
-          event.eventId,
+          eventId,
           event.title,
           creatorName,
         );

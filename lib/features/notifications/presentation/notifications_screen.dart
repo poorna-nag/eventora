@@ -1,12 +1,74 @@
+import 'dart:async';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eventora/core/utils/date_formatter.dart';
 import 'package:eventora/features/events/data/event_model.dart';
 import 'package:eventora/features/events/event_details_screen.dart';
 import 'package:eventora/features/notifications/data/notification_model.dart';
 import 'package:flutter/material.dart';
+import 'package:eventora/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:eventora/features/auth/presentation/bloc/auth_state.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:eventora/features/notifications/data/notification_repository.dart';
 
-class NotificationsScreen extends StatelessWidget {
+class NotificationsScreen extends StatefulWidget {
   const NotificationsScreen({super.key});
+
+  @override
+  State<NotificationsScreen> createState() => _NotificationsScreenState();
+}
+
+class _NotificationsScreenState extends State<NotificationsScreen> {
+  final List<NotificationModel> _globalNotifications = [];
+  final List<NotificationModel> _personalNotifications = [];
+  StreamSubscription? _globalSub;
+  StreamSubscription? _personalSub;
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _setupStreams();
+  }
+
+  void _setupStreams() {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) {
+      final repo = NotificationRepository();
+
+      _globalSub = repo.getGlobalNotifications().listen((notifications) {
+        setState(() {
+          _globalNotifications.clear();
+          _globalNotifications.addAll(notifications);
+          _isLoading = false;
+        });
+      });
+
+      _personalSub = repo.getUserNotifications(authState.user.uid).listen((
+        notifications,
+      ) {
+        setState(() {
+          _personalNotifications.clear();
+          _personalNotifications.addAll(notifications);
+          _isLoading = false;
+        });
+      });
+    } else {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _globalSub?.cancel();
+    _personalSub?.cancel();
+    super.dispose();
+  }
+
+  List<NotificationModel> get _allNotifications {
+    final all = [..._globalNotifications, ..._personalNotifications];
+    all.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+    return all;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -17,57 +79,35 @@ class NotificationsScreen extends StatelessWidget {
         foregroundColor: Colors.black,
         elevation: 0,
       ),
-      body: StreamBuilder<QuerySnapshot>(
-        // Listen to global notifications
-        stream: FirebaseFirestore.instance
-            .collection('global_notifications')
-            .orderBy('timestamp', descending: true)
-            .limit(50)
-            .snapshots(),
-        builder: (context, snapshot) {
-          if (snapshot.connectionState == ConnectionState.waiting) {
-            return const Center(child: CircularProgressIndicator());
-          }
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : _allNotifications.isEmpty
+          ? _buildEmptyState()
+          : ListView.builder(
+              itemCount: _allNotifications.length,
+              padding: const EdgeInsets.all(16),
+              itemBuilder: (context, index) {
+                return _buildNotificationCard(
+                  context,
+                  _allNotifications[index],
+                );
+              },
+            ),
+    );
+  }
 
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-
-          final docs = snapshot.data?.docs ?? [];
-
-          if (docs.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.notifications_off,
-                    size: 80,
-                    color: Colors.grey.shade300,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'No notifications yet',
-                    style: TextStyle(color: Colors.grey.shade600),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          return ListView.builder(
-            itemCount: docs.length,
-            padding: const EdgeInsets.all(16),
-            itemBuilder: (context, index) {
-              final data = docs[index].data() as Map<String, dynamic>;
-              // Add ID if missing from data
-              data['id'] = docs[index].id;
-              final notification = NotificationModel.fromJson(data);
-
-              return _buildNotificationCard(context, notification);
-            },
-          );
-        },
+  Widget _buildEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.notifications_off, size: 80, color: Colors.grey.shade300),
+          const SizedBox(height: 16),
+          Text(
+            'No notifications yet',
+            style: TextStyle(color: Colors.grey.shade600),
+          ),
+        ],
       ),
     );
   }
@@ -79,7 +119,6 @@ class NotificationsScreen extends StatelessWidget {
     return GestureDetector(
       onTap: () async {
         if (notification.eventId != null) {
-          // Fetch event details and navigate
           try {
             final eventDoc = await FirebaseFirestore.instance
                 .collection('events')
@@ -88,7 +127,7 @@ class NotificationsScreen extends StatelessWidget {
 
             if (eventDoc.exists) {
               final event = EventModel.fromFirestore(eventDoc);
-              if (context.mounted) {
+              if (mounted) {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -97,7 +136,7 @@ class NotificationsScreen extends StatelessWidget {
                 );
               }
             } else {
-              if (context.mounted) {
+              if (mounted) {
                 ScaffoldMessenger.of(context).showSnackBar(
                   const SnackBar(content: Text('Event no longer exists')),
                 );
@@ -127,10 +166,13 @@ class NotificationsScreen extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(12),
               decoration: BoxDecoration(
-                color: Colors.orange.withOpacity(0.1),
+                color: _getIconColor(notification.type).withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: const Icon(Icons.celebration, color: Colors.orange),
+              child: Icon(
+                _getIcon(notification.type),
+                color: _getIconColor(notification.type),
+              ),
             ),
             const SizedBox(width: 16),
             Expanded(
@@ -170,5 +212,35 @@ class NotificationsScreen extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  IconData _getIcon(String type) {
+    switch (type) {
+      case 'event_created':
+        return Icons.celebration;
+      case 'request_accepted':
+        return Icons.check_circle;
+      case 'request_rejected':
+        return Icons.cancel;
+      case 'booking_confirmed':
+        return Icons.confirmation_number;
+      default:
+        return Icons.notifications;
+    }
+  }
+
+  Color _getIconColor(String type) {
+    switch (type) {
+      case 'event_created':
+        return Colors.orange;
+      case 'request_accepted':
+        return Colors.green;
+      case 'request_rejected':
+        return Colors.red;
+      case 'booking_confirmed':
+        return Colors.blue;
+      default:
+        return Colors.grey;
+    }
   }
 }

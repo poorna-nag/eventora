@@ -1,3 +1,5 @@
+import 'package:eventora/core/app_const/app_colors.dart';
+import 'package:eventora/core/app_const/app_strings.dart';
 import 'package:eventora/core/app_const/auth_background.dart';
 import 'package:eventora/core/navigation/navigation_service.dart';
 import 'package:eventora/core/utils/validators.dart';
@@ -5,9 +7,9 @@ import 'package:eventora/core/widgets/custom_button.dart';
 import 'package:eventora/core/widgets/custom_text_field.dart';
 import 'package:eventora/core/widgets/safety_warning_dialog.dart';
 import 'package:eventora/core/widgets/terms_and_conditions_dialog.dart';
-import 'package:eventora/features/auth/data/auth_service.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_event.dart';
+import 'package:eventora/features/auth/presentation/bloc/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -24,8 +26,6 @@ class _SignUpScreenState extends State<SignUpScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  final _authService = AuthService();
-  bool _isLoading = false;
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
 
@@ -38,67 +38,51 @@ class _SignUpScreenState extends State<SignUpScreen> {
     super.dispose();
   }
 
-  Future<void> _handleSignUp() async {
+  void _handleSignUp() {
     if (!_formKey.currentState!.validate()) return;
 
-    setState(() => _isLoading = true);
-
-    try {
-      await _authService.signUp(
+    context.read<AuthBloc>().add(
+      AuthSignUpRequested(
         name: _nameController.text.trim(),
         email: _emailController.text.trim(),
         password: _passwordController.text,
-      );
+      ),
+    );
+  }
 
+  Future<void> _onSignUpSuccess(BuildContext context) async {
+    // Show Terms & Conditions dialog
+    final accepted = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => TermsAndConditionsDialog(
+        onAccept: () async {
+          // Show Safety Warning after accepting terms
+          await showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (context) => SafetyWarningDialog(
+              onAcknowledge: () {
+                if (mounted) {
+                  context.read<AuthBloc>().add(AuthCheckRequested());
+                  NavigationService.pushReplacementNamed(
+                    routeName: AppRoutes.ageVerification,
+                  );
+                }
+              },
+            ),
+          );
+        },
+      ),
+    );
+
+    if (accepted == false || accepted == null) {
       if (mounted) {
-        setState(() => _isLoading = false);
-
-        // Show Terms & Conditions dialog
-        final accepted = await showDialog<bool>(
-          context: context,
-          barrierDismissible: false,
-          builder: (context) => TermsAndConditionsDialog(
-            onAccept: () async {
-              // Show Safety Warning after accepting terms
-              await showDialog(
-                context: context,
-                barrierDismissible: false,
-                builder: (context) => SafetyWarningDialog(
-                  onAcknowledge: () {
-                    // Update AuthBloc after acknowledging safety warning
-                    context.read<AuthBloc>().add(AuthCheckRequested());
-                    NavigationService.pushReplacementNamed(
-                      routeName: AppRoutes.ageVerification,
-                    );
-                  },
-                ),
-              );
-            },
-          ),
-        );
-
-        // If user declined terms, delete account and sign them out
-        if (accepted == false || accepted == null) {
-          await _authService.signOut();
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'You must accept the Terms & Conditions to use this app',
-                ),
-                backgroundColor: Colors.orange,
-              ),
-            );
-          }
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() => _isLoading = false);
+        context.read<AuthBloc>().add(AuthLogoutRequested());
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.red,
+          const SnackBar(
+            content: Text(AppStrings.acceptTermsWarning),
+            backgroundColor: Colors.orange,
           ),
         );
       }
@@ -107,38 +91,56 @@ class _SignUpScreenState extends State<SignUpScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: AuthBackground(
-        child: SafeArea(
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(height: 60),
-                const Text(
-                  "Create Account",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
+    return BlocListener<AuthBloc, AuthState>(
+      listener: (context, state) {
+        if (state is AuthAuthenticated) {
+          _onSignUpSuccess(context);
+        } else if (state is AuthError) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(state.message),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
+      },
+      child: Scaffold(
+        body: AuthBackground(
+          child: SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 60),
+                  const Text(
+                    AppStrings.createAccount,
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                const Text(
-                  "Join us and start exploring events",
-                  style: TextStyle(color: Colors.white70, fontSize: 16),
-                ),
-                const SizedBox(height: 40),
-                Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 20),
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(26),
+                  const SizedBox(height: 8),
+                  const Text(
+                    AppStrings.signupSubtitle,
+                    style: TextStyle(color: Colors.white70, fontSize: 16),
                   ),
-                  child: _buildSignUpForm(),
-                ),
-              ],
+                  const SizedBox(height: 40),
+                  Container(
+                    margin: const EdgeInsets.symmetric(horizontal: 20),
+                    padding: const EdgeInsets.all(24),
+                    decoration: BoxDecoration(
+                      color: AppColors.background,
+                      borderRadius: BorderRadius.circular(26),
+                    ),
+                    child: BlocBuilder<AuthBloc, AuthState>(
+                      builder: (context, state) {
+                        return _buildSignUpForm(state is AuthLoading);
+                      },
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ),
@@ -146,43 +148,47 @@ class _SignUpScreenState extends State<SignUpScreen> {
     );
   }
 
-  Widget _buildSignUpForm() {
+  Widget _buildSignUpForm(bool isLoading) {
     return Form(
       key: _formKey,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           const Text(
-            "Sign Up",
+            AppStrings.signup,
             style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 6),
-          const Text(
-            "From House Parties to Live Vibes",
-            style: TextStyle(color: Colors.grey),
           ),
           const SizedBox(height: 24),
           CustomTextField(
             controller: _nameController,
-            hintText: "Full Name",
+            hintText: AppStrings.name,
             validator: Validators.validateName,
-            prefixIcon: const Icon(Icons.person_outline, color: Colors.orange),
+            prefixIcon: const Icon(
+              Icons.person_outline,
+              color: AppColors.iconColor,
+            ),
           ),
           const SizedBox(height: 16),
           CustomTextField(
             controller: _emailController,
-            hintText: "Email",
+            hintText: AppStrings.email,
             keyboardType: TextInputType.emailAddress,
             validator: Validators.validateEmail,
-            prefixIcon: const Icon(Icons.email_outlined, color: Colors.orange),
+            prefixIcon: const Icon(
+              Icons.email_outlined,
+              color: AppColors.iconColor,
+            ),
           ),
           const SizedBox(height: 16),
           CustomTextField(
             controller: _passwordController,
-            hintText: "Password",
+            hintText: AppStrings.password,
             obscureText: _obscurePassword,
             validator: Validators.validatePassword,
-            prefixIcon: const Icon(Icons.lock_outline, color: Colors.orange),
+            prefixIcon: const Icon(
+              Icons.lock_outline,
+              color: AppColors.iconColor,
+            ),
             suffixIcon: IconButton(
               icon: Icon(
                 _obscurePassword ? Icons.visibility_off : Icons.visibility,
@@ -196,13 +202,16 @@ class _SignUpScreenState extends State<SignUpScreen> {
           const SizedBox(height: 16),
           CustomTextField(
             controller: _confirmPasswordController,
-            hintText: "Confirm Password",
+            hintText: AppStrings.confirmPassword,
             obscureText: _obscureConfirmPassword,
             validator: (value) => Validators.validateConfirmPassword(
               value,
               _passwordController.text,
             ),
-            prefixIcon: const Icon(Icons.lock_outline, color: Colors.orange),
+            prefixIcon: const Icon(
+              Icons.lock_outline,
+              color: AppColors.iconColor,
+            ),
             suffixIcon: IconButton(
               icon: Icon(
                 _obscureConfirmPassword
@@ -219,19 +228,28 @@ class _SignUpScreenState extends State<SignUpScreen> {
           ),
           const SizedBox(height: 24),
           CustomButton(
-            text: 'Sign Up',
+            text: AppStrings.signup,
             onPressed: _handleSignUp,
-            isLoading: _isLoading,
+            isLoading: isLoading,
           ),
           const SizedBox(height: 16),
           Center(
             child: TextButton(
-              onPressed: () {
-                Navigator.pop(context);
-              },
-              child: const Text(
-                "Already have an account? Log In",
-                style: TextStyle(color: Colors.orange),
+              onPressed: () => Navigator.pop(context),
+              child: RichText(
+                text: TextSpan(
+                  text: AppStrings.alreadyHaveAccount,
+                  style: const TextStyle(color: Colors.grey),
+                  children: [
+                    TextSpan(
+                      text: AppStrings.login,
+                      style: const TextStyle(
+                        color: Colors.orange,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),

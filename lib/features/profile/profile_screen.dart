@@ -1,12 +1,13 @@
 import 'dart:io';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:eventora/core/app_const/app_colors.dart';
+import 'package:eventora/core/app_const/app_strings.dart';
 import 'package:eventora/core/navigation/navigation_service.dart';
 import 'package:eventora/core/services/firebase_storage_service.dart';
 import 'package:eventora/features/auth/data/user_model.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_event.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_state.dart';
-import 'package:eventora/features/auth/data/auth_service.dart';
 import 'package:eventora/features/bookings/booking_screen.dart';
 import 'package:eventora/features/profile/my_created_events_screen.dart';
 import 'package:eventora/features/profile/widgets/edit_profile_dialog.dart';
@@ -24,7 +25,6 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  final AuthService _authService = AuthService();
   final FirebaseStorageService _storageService = FirebaseStorageService();
   final ImagePicker _picker = ImagePicker();
   bool _isUploadingImage = false;
@@ -36,21 +36,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
     setState(() => _isUploadingImage = true);
 
     try {
+      final authRepo = context.read<AuthBloc>().authRepository;
       final imageUrl = await _storageService.uploadProfileImage(
         File(image.path),
       );
-      await _authService.updateProfile(profileImageUrl: imageUrl);
+      await authRepo.updateProfile(profileImageUrl: imageUrl);
 
       if (mounted) {
         context.read<AuthBloc>().add(AuthCheckRequested());
-      }
-
-      if (mounted) {
-        setState(() {});
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Profile picture updated!'),
-            backgroundColor: Colors.green,
+            content: Text(AppStrings.profileUpdated),
+            backgroundColor: AppColors.success,
           ),
         );
       }
@@ -59,7 +56,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString().replaceAll('Exception: ', '')),
-            backgroundColor: Colors.red,
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -83,7 +80,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             gradient: const LinearGradient(
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
-              colors: [Color(0xFF3B5BD6), Color(0xFF7A3EE6)],
+              colors: [AppColors.primary, AppColors.secondary],
             ),
           ),
           child: Column(
@@ -92,7 +89,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.2),
+                  color: Colors.white.withOpacity(0.2),
                   shape: BoxShape.circle,
                 ),
                 child: const Icon(
@@ -103,7 +100,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 20),
               const Text(
-                'Logout',
+                AppStrings.logout,
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.bold,
@@ -112,7 +109,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 12),
               const Text(
-                'Are you sure you want to logout?\nYou can always come back!',
+                AppStrings.logoutConfirm,
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   fontSize: 14,
@@ -135,7 +132,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                       ),
                       child: const Text(
-                        'Cancel',
+                        AppStrings.cancel,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -149,14 +146,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       onPressed: () => Navigator.pop(context, true),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
-                        foregroundColor: const Color(0xFF3B5BD6),
+                        foregroundColor: AppColors.primary,
                         padding: const EdgeInsets.symmetric(vertical: 12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
                         ),
                       ),
                       child: const Text(
-                        'Logout',
+                        AppStrings.logout,
                         style: TextStyle(
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
@@ -174,41 +171,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (confirmed != true) return;
 
-    await _authService.signOut();
     if (mounted) {
+      context.read<AuthBloc>().add(AuthLogoutRequested());
       NavigationService.pushReplacementNamed(routeName: AppRoutes.login);
     }
   }
 
   Future<void> _inviteFriends() async {
     try {
-      const String inviteMessage = '''
-🎉 Join me on Eventora! 🎉
-
-Discover and book amazing events near you!
-
-✨ Features:
-• Browse local events
-• Book tickets instantly
-• QR code ticket system
-• Create your own events
-• Secure payments
-
-Download Eventora now and never miss an event!
-
-📱 Get the app: [App Store Link / Play Store Link]
-      ''';
-
       await Share.share(
-        inviteMessage,
-        subject: 'Join me on Eventora - Discover Amazing Events!',
+        AppStrings.inviteFriendMessage,
+        subject: AppStrings.inviteSubject,
       );
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to share: ${e.toString()}'),
-            backgroundColor: Colors.red,
+            content: Text('${AppStrings.failedToShare}: $e'),
+            backgroundColor: AppColors.error,
           ),
         );
       }
@@ -222,7 +202,6 @@ Download Eventora now and never miss an event!
     );
 
     if (result == true && mounted) {
-      // Refresh user data
       context.read<AuthBloc>().add(AuthCheckRequested());
     }
   }
@@ -234,19 +213,7 @@ Download Eventora now and never miss an event!
       body: BlocBuilder<AuthBloc, AuthState>(
         builder: (context, state) {
           if (state is! AuthAuthenticated) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.person_off, size: 80, color: Colors.grey.shade400),
-                  const SizedBox(height: 16),
-                  Text(
-                    'Please login to view profile',
-                    style: TextStyle(fontSize: 18, color: Colors.grey.shade600),
-                  ),
-                ],
-              ),
-            );
+            return const Center(child: CircularProgressIndicator());
           }
 
           final user = state.user;
@@ -256,12 +223,12 @@ Download Eventora now and never miss an event!
               SliverAppBar(
                 expandedHeight: 200,
                 pinned: true,
-                backgroundColor: Colors.orange,
+                backgroundColor: AppColors.iconColor,
                 automaticallyImplyLeading: false,
                 actions: [
                   IconButton(
                     icon: const Icon(Icons.edit, color: Colors.white),
-                    tooltip: 'Edit Profile',
+                    tooltip: AppStrings.editProfile,
                     onPressed: () => _editProfile(user),
                   ),
                   IconButton(
@@ -269,7 +236,7 @@ Download Eventora now and never miss an event!
                       Icons.qr_code_scanner,
                       color: Colors.white,
                     ),
-                    tooltip: 'Scan Ticket',
+                    tooltip: AppStrings.scanTicket,
                     onPressed: () {
                       Navigator.push(
                         context,
@@ -292,135 +259,19 @@ Download Eventora now and never miss an event!
                             color: Colors.grey.shade300,
                             child: const Center(
                               child: CircularProgressIndicator(
-                                color: Colors.orange,
+                                color: AppColors.iconColor,
                               ),
                             ),
                           ),
-                          errorWidget: (context, url, error) => Container(
-                            decoration: const BoxDecoration(
-                              gradient: LinearGradient(
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                                colors: [
-                                  Color(0xFF3B5BD6),
-                                  Color(0xFF7A3EE6),
-                                  Color(0xFF9A4EDB),
-                                ],
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.person,
-                              size: 80,
-                              color: Colors.white54,
-                            ),
-                          ),
+                          errorWidget: (context, url, error) =>
+                              _buildDefaultAvatar(),
                         )
                       else
-                        Container(
-                          decoration: const BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Color(0xFF3B5BD6),
-                                Color(0xFF7A3EE6),
-                                Color(0xFF9A4EDB),
-                              ],
-                            ),
-                          ),
-                          child: const Center(
-                            child: Icon(
-                              Icons.person,
-                              size: 80,
-                              color: Colors.white54,
-                            ),
-                          ),
-                        ),
-                      // Gradient Overlay for Text Readability
-                      Container(
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [
-                              Colors.transparent,
-                              Colors.transparent,
-                              Colors.black.withOpacity(0.7),
-                            ],
-                            stops: const [0.0, 0.6, 1.0],
-                          ),
-                        ),
-                      ),
-                      // User Info & Upload Button
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.end,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Expanded(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        user.name,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        user.email,
-                                        style: const TextStyle(
-                                          color: Colors.white70,
-                                          fontSize: 14,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                GestureDetector(
-                                  onTap: _pickAndUploadProfileImage,
-                                  child: Container(
-                                    padding: const EdgeInsets.all(10),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      shape: BoxShape.circle,
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: Colors.black.withOpacity(0.2),
-                                          blurRadius: 8,
-                                        ),
-                                      ],
-                                    ),
-                                    child: _isUploadingImage
-                                        ? const SizedBox(
-                                            width: 20,
-                                            height: 20,
-                                            child: CircularProgressIndicator(
-                                              strokeWidth: 2,
-                                              color: Colors.orange,
-                                            ),
-                                          )
-                                        : const Icon(
-                                            Icons.camera_alt,
-                                            size: 20,
-                                            color: Colors.orange,
-                                          ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
+                        _buildDefaultAvatar(),
+
+                      _buildGradientOverlay(),
+
+                      _buildUserInfoHeader(user),
                     ],
                   ),
                 ),
@@ -431,301 +282,11 @@ Download Eventora now and never miss an event!
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Bio, Workplace, Social Media Section
-                      if (user.bio != null ||
-                          user.workplace != null ||
-                          user.instagram != null ||
-                          user.twitter != null ||
-                          (user.interests != null &&
-                              user.interests!.isNotEmpty))
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          margin: const EdgeInsets.only(bottom: 16),
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(12),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.05),
-                                blurRadius: 10,
-                                offset: const Offset(0, 4),
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              if (user.bio != null) ...[
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.info_outline,
-                                      color: Colors.orange,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    const Text(
-                                      'Bio',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Text(
-                                  user.bio!,
-                                  style: TextStyle(
-                                    color: Colors.grey.shade700,
-                                    height: 1.5,
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                              ],
-                              if (user.workplace != null) ...[
-                                Row(
-                                  children: [
-                                    Icon(
-                                      Icons.work_outline,
-                                      color: Colors.orange,
-                                      size: 20,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      user.workplace!,
-                                      style: TextStyle(
-                                        color: Colors.grey.shade700,
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                              ],
-                              if (user.instagram != null ||
-                                  user.twitter != null) ...[
-                                Row(
-                                  children: [
-                                    if (user.instagram != null) ...[
-                                      Icon(
-                                        Icons.camera_alt,
-                                        color: Colors.pink,
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        user.instagram!,
-                                        style: TextStyle(
-                                          color: Colors.grey.shade700,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 16),
-                                    ],
-                                    if (user.twitter != null) ...[
-                                      Icon(
-                                        Icons.alternate_email,
-                                        color: Colors.blue,
-                                        size: 20,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        user.twitter!,
-                                        style: TextStyle(
-                                          color: Colors.grey.shade700,
-                                        ),
-                                      ),
-                                    ],
-                                  ],
-                                ),
-                                const SizedBox(height: 12),
-                              ],
-                              if (user.interests != null &&
-                                  user.interests!.isNotEmpty) ...[
-                                const Row(
-                                  children: [
-                                    Icon(
-                                      Icons.favorite_outline,
-                                      color: Colors.orange,
-                                      size: 20,
-                                    ),
-                                    SizedBox(width: 8),
-                                    Text(
-                                      'Interests',
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  children: user.interests!.map((interest) {
-                                    return Container(
-                                      padding: const EdgeInsets.symmetric(
-                                        horizontal: 12,
-                                        vertical: 6,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: Colors.orange.withOpacity(0.1),
-                                        borderRadius: BorderRadius.circular(20),
-                                      ),
-                                      child: Text(
-                                        interest,
-                                        style: const TextStyle(
-                                          color: Colors.orange,
-                                          fontWeight: FontWeight.w600,
-                                          fontSize: 12,
-                                        ),
-                                      ),
-                                    );
-                                  }).toList(),
-                                ),
-                              ],
-                            ],
-                          ),
-                        ),
-                      Row(
-                        children: [
-                          Expanded(
-                            child: _buildClickableStatCard(
-                              'Events Created',
-                              user.eventsCreated.toString(),
-                              Icons.event,
-                              () {
-                                print(
-                                  'Events Created card tapped - userId: ${user.uid}',
-                                );
-                                // Navigate to a screen showing created events with tracking
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        MyCreatedEventsScreen(userId: user.uid),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: _buildClickableStatCard(
-                              'Bookings Made',
-                              user.bookingsMade.toString(),
-                              Icons.bookmark,
-                              () {
-                                print('Bookings Made card tapped');
-                                // Navigate to bookings screen
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) => const BookingScreen(),
-                                  ),
-                                );
-                              },
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              SliverToBoxAdapter(
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      const SizedBox(height: 20),
-                      // Invite Friends Card
-                      GestureDetector(
-                        onTap: _inviteFriends,
-                        child: Container(
-                          padding: const EdgeInsets.all(20),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                              colors: [
-                                Color(0xFF3B5BD6),
-                                Color(0xFF7A3EE6),
-                                Color(0xFF9A4EDB),
-                              ],
-                            ),
-                            borderRadius: BorderRadius.circular(16),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF7A3EE6).withOpacity(0.3),
-                                blurRadius: 15,
-                                offset: const Offset(0, 8),
-                              ),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.all(12),
-                                decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.2),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: const Icon(
-                                  Icons.card_giftcard_rounded,
-                                  color: Colors.white,
-                                  size: 32,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text(
-                                      'Invite Friends',
-                                      style: TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Share Eventora with your friends',
-                                      style: TextStyle(
-                                        color: Colors.white.withOpacity(0.9),
-                                        fontSize: 13,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              Container(
-                                padding: const EdgeInsets.all(8),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(8),
-                                ),
-                                child: const Icon(
-                                  Icons.share_rounded,
-                                  color: Color(0xFF7A3EE6),
-                                  size: 20,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                      _buildBioSection(user),
                       const SizedBox(height: 16),
-                      _buildMenuTile(
-                        icon: Icons.logout_outlined,
-                        title: 'Logout',
-                        color: Colors.red,
-                        onTap: _logout,
-                      ),
-                      const SizedBox(height: 40),
+                      _buildStatsSection(user),
+                      const SizedBox(height: 20),
+                      _buildActionSection(),
                     ],
                   ),
                 ),
@@ -737,7 +298,271 @@ Download Eventora now and never miss an event!
     );
   }
 
-  Widget _buildClickableStatCard(
+  Widget _buildDefaultAvatar() {
+    return Container(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: AppColors.authGradient,
+        ),
+      ),
+      child: const Center(
+        child: Icon(Icons.person, size: 80, color: Colors.white54),
+      ),
+    );
+  }
+
+  Widget _buildGradientOverlay() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            Colors.transparent,
+            Colors.transparent,
+            Colors.black.withOpacity(0.7),
+          ],
+          stops: const [0.0, 0.6, 1.0],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildUserInfoHeader(UserModel user) {
+    return Padding(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.end,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      user.name,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      user.email,
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 14,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              GestureDetector(
+                onTap: _pickAndUploadProfileImage,
+                child: Container(
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.2),
+                        blurRadius: 8,
+                      ),
+                    ],
+                  ),
+                  child: _isUploadingImage
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.iconColor,
+                          ),
+                        )
+                      : const Icon(
+                          Icons.camera_alt,
+                          size: 20,
+                          color: AppColors.iconColor,
+                        ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBioSection(UserModel user) {
+    if (user.bio == null &&
+        user.workplace == null &&
+        user.instagram == null &&
+        user.twitter == null &&
+        (user.interests == null || user.interests!.isEmpty)) {
+      return const SizedBox.shrink();
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: AppColors.background,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (user.bio != null) ...[
+            _buildSectionTitle(Icons.info_outline, AppStrings.bio),
+            const SizedBox(height: 8),
+            Text(
+              user.bio!,
+              style: TextStyle(color: Colors.grey.shade700, height: 1.5),
+            ),
+            const SizedBox(height: 16),
+          ],
+          if (user.workplace != null) ...[
+            _buildInfoRow(Icons.work_outline, user.workplace!),
+            const SizedBox(height: 12),
+          ],
+          if (user.instagram != null || user.twitter != null) ...[
+            Row(
+              children: [
+                if (user.instagram != null) ...[
+                  const Icon(Icons.camera_alt, color: Colors.pink, size: 20),
+                  const SizedBox(width: 4),
+                  Text(
+                    user.instagram!,
+                    style: TextStyle(color: Colors.grey.shade700),
+                  ),
+                  const SizedBox(width: 16),
+                ],
+                if (user.twitter != null) ...[
+                  const Icon(
+                    Icons.alternate_email,
+                    color: Colors.blue,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    user.twitter!,
+                    style: TextStyle(color: Colors.grey.shade700),
+                  ),
+                ],
+              ],
+            ),
+            const SizedBox(height: 12),
+          ],
+          if (user.interests != null && user.interests!.isNotEmpty) ...[
+            _buildSectionTitle(Icons.favorite_outline, AppStrings.interests),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: user.interests!
+                  .map((interest) => _buildInterestChip(interest))
+                  .toList(),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSectionTitle(IconData icon, String title) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.iconColor, size: 20),
+        const SizedBox(width: 8),
+        Text(
+          title,
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInfoRow(IconData icon, String text) {
+    return Row(
+      children: [
+        Icon(icon, color: AppColors.iconColor, size: 20),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: TextStyle(
+            color: Colors.grey.shade700,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildInterestChip(String interest) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      decoration: BoxDecoration(
+        color: AppColors.iconColor.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Text(
+        interest,
+        style: const TextStyle(
+          color: AppColors.iconColor,
+          fontWeight: FontWeight.w600,
+          fontSize: 12,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildStatsSection(UserModel user) {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildStatCard(
+            AppStrings.eventsCreated,
+            user.eventsCreated.toString(),
+            Icons.event,
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => MyCreatedEventsScreen(userId: user.uid),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: _buildStatCard(
+            AppStrings.bookingsMade,
+            user.bookingsMade.toString(),
+            Icons.bookmark,
+            () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (context) => const BookingScreen()),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildStatCard(
     String label,
     String value,
     IconData icon,
@@ -748,7 +573,7 @@ Download Eventora now and never miss an event!
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.background,
           borderRadius: BorderRadius.circular(12),
           boxShadow: [
             BoxShadow(
@@ -760,14 +585,14 @@ Download Eventora now and never miss an event!
         ),
         child: Column(
           children: [
-            Icon(icon, color: Colors.orange, size: 30),
+            Icon(icon, color: AppColors.iconColor, size: 30),
             const SizedBox(height: 8),
             Text(
               value,
               style: const TextStyle(
                 fontSize: 24,
                 fontWeight: FontWeight.bold,
-                color: Colors.orange,
+                color: AppColors.iconColor,
               ),
             ),
             const SizedBox(height: 4),
@@ -782,6 +607,93 @@ Download Eventora now and never miss an event!
     );
   }
 
+  Widget _buildActionSection() {
+    return Column(
+      children: [
+        GestureDetector(
+          onTap: _inviteFriends,
+          child: Container(
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: AppColors.authGradient,
+              ),
+              borderRadius: BorderRadius.circular(16),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.secondary.withOpacity(0.3),
+                  blurRadius: 15,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(
+                    Icons.card_giftcard_rounded,
+                    color: Colors.white,
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Text(
+                        AppStrings.inviteFriends,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        AppStrings.inviteFriendsSubtitle,
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.9),
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.share_rounded,
+                    color: AppColors.secondary,
+                    size: 20,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        _buildMenuTile(
+          icon: Icons.logout_outlined,
+          title: AppStrings.logout,
+          color: AppColors.error,
+          onTap: _logout,
+        ),
+      ],
+    );
+  }
+
   Widget _buildMenuTile({
     required IconData icon,
     required String title,
@@ -793,27 +705,23 @@ Download Eventora now and never miss an event!
       child: Container(
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.background,
           borderRadius: BorderRadius.circular(12),
         ),
         child: Row(
           children: [
-            Icon(icon, color: color ?? Colors.orange),
+            Icon(icon, color: color ?? AppColors.textHeadline),
             const SizedBox(width: 16),
             Text(
               title,
               style: TextStyle(
+                color: color ?? AppColors.textHeadline,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
-                color: color ?? Colors.black,
               ),
             ),
             const Spacer(),
-            Icon(
-              Icons.arrow_forward_ios,
-              size: 16,
-              color: Colors.grey.shade400,
-            ),
+            Icon(Icons.chevron_right, color: Colors.grey.shade400),
           ],
         ),
       ),

@@ -4,20 +4,6 @@ import 'package:eventora/features/notifications/data/notification_model.dart';
 class NotificationRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  Stream<List<NotificationModel>> getUserNotifications(String userId) {
-    return _firestore
-        .collection('notifications')
-        .where('userId', isEqualTo: userId)
-        .snapshots()
-        .map((snapshot) {
-          final notifications = snapshot.docs
-              .map((doc) => NotificationModel.fromJson(doc.data()))
-              .toList();
-          notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-          return notifications;
-        });
-  }
-
   Future<void> markAsRead(String notificationId) async {
     try {
       await _firestore.collection('notifications').doc(notificationId).update({
@@ -119,5 +105,36 @@ class NotificationRepository {
     } catch (e) {
       print('Error sending join request rejected notification: $e');
     }
+  }
+
+  Stream<List<NotificationModel>> getUserNotifications(String userId) {
+    return _firestore
+        .collection('notifications')
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map((snapshot) {
+          final notifications = snapshot.docs.map((doc) {
+            final data = doc.data();
+            data['id'] = doc.id;
+            return NotificationModel.fromJson(data);
+          }).toList();
+          notifications.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+          return notifications;
+        });
+  }
+
+  Stream<List<NotificationModel>> getGlobalNotifications() {
+    return _firestore
+        .collection('global_notifications')
+        .orderBy('timestamp', descending: true)
+        .limit(50)
+        .snapshots()
+        .map(
+          (snapshot) => snapshot.docs.map((doc) {
+            final data = doc.data();
+            data['id'] = doc.id;
+            return NotificationModel.fromJson(data);
+          }).toList(),
+        );
   }
 }

@@ -77,59 +77,98 @@ class _PublicProfileScreenState extends State<PublicProfileScreen> {
             backgroundColor: Colors.transparent,
             iconTheme: const IconThemeData(color: Colors.white),
             flexibleSpace: FlexibleSpaceBar(
-              background: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Color(0xFF3B5BD6),
-                      Color(0xFF7A3EE6),
-                      Color(0xFF9A4EDB),
-                    ],
-                  ),
-                ),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const SizedBox(height: 60), // Add padding for status bar
-                    CircleAvatar(
-                      radius: 50,
-                      backgroundColor: Colors.white,
-                      child: user.profileImageUrl != null
-                          ? ClipOval(
-                              child: CachedNetworkImage(
-                                imageUrl: user.profileImageUrl!,
-                                width: 100,
-                                height: 100,
-                                fit: BoxFit.cover,
-                                placeholder: (context, url) =>
-                                    const CircularProgressIndicator(),
-                                errorWidget: (context, url, error) =>
-                                    const Icon(
-                                      Icons.person,
-                                      size: 50,
-                                      color: Colors.orange,
-                                    ),
-                              ),
-                            )
-                          : const Icon(
-                              Icons.person,
-                              size: 50,
-                              color: Colors.orange,
-                            ),
-                    ),
-                    const SizedBox(height: 12),
-                    Text(
-                      user.name,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
+              background: Stack(
+                fit: StackFit.expand,
+                children: [
+                  if (user.profileImageUrl != null)
+                    CachedNetworkImage(
+                      imageUrl: user.profileImageUrl!,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: Colors.grey.shade300,
+                        child: const Center(
+                          child: CircularProgressIndicator(
+                            color: Colors.orange,
+                          ),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              Color(0xFF3B5BD6),
+                              Color(0xFF7A3EE6),
+                              Color(0xFF9A4EDB),
+                            ],
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.person,
+                          size: 80,
+                          color: Colors.white54,
+                        ),
+                      ),
+                    )
+                  else
+                    Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [
+                            Color(0xFF3B5BD6),
+                            Color(0xFF7A3EE6),
+                            Color(0xFF9A4EDB),
+                          ],
+                        ),
+                      ),
+                      child: const Center(
+                        child: Icon(
+                          Icons.person,
+                          size: 80,
+                          color: Colors.white54,
+                        ),
                       ),
                     ),
-                  ],
-                ),
+                  // Gradient Overlay for Text Readability
+                  Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.transparent,
+                          Colors.transparent,
+                          Colors.black.withOpacity(0.7),
+                        ],
+                        stops: const [0.0, 0.6, 1.0],
+                      ),
+                    ),
+                  ),
+                  // User Info
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          user.name,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 24,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        // Optional: Show email or role if public?
+                        // Stick to name for now as per public view logic.
+                      ],
+                    ),
+                  ),
+                ],
               ),
             ),
           ),

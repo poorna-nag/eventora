@@ -1,4 +1,5 @@
 import 'dart:ui';
+import 'package:eventora/core/app_const/app_strings.dart';
 import 'package:eventora/core/app_const/auth_background.dart';
 import 'package:eventora/core/navigation/navigation_service.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_bloc.dart';
@@ -17,19 +18,6 @@ class _SplashScreenState extends State<SplashScreen> {
   bool _hasNavigated = false;
 
   @override
-  void initState() {
-    super.initState();
-    // The AuthCheckRequested is already called in main.dart,
-    // but we add a timeout here just in case or if we want a minimum splash time.
-    Future.delayed(const Duration(seconds: 3), () {
-      if (mounted && !_hasNavigated) {
-        // If it hasn't navigated yet, it might be stuck or still loading.
-        // We can optionally retry check here, but the BlocProvider already started it.
-      }
-    });
-  }
-
-  @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
       listener: (context, state) {
@@ -44,7 +32,7 @@ class _SplashScreenState extends State<SplashScreen> {
               routeName: AppRoutes.ageVerification,
             );
           }
-        } else if (state is AuthUnauthenticated) {
+        } else if (state is AuthUnauthenticated || state is AuthError) {
           _hasNavigated = true;
           NavigationService.pushReplacementNamed(routeName: AppRoutes.login);
         }
@@ -55,7 +43,7 @@ class _SplashScreenState extends State<SplashScreen> {
             AuthBackground(child: Container()),
             BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 5, sigmaY: 5),
-              child: Container(color: Colors.black.withValues(alpha: 0.2)),
+              child: Container(color: Colors.black.withOpacity(0.2)),
             ),
             Center(
               child: Column(
@@ -64,7 +52,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   _logo(),
                   const SizedBox(height: 24),
                   const Text(
-                    "EventorA¹⁸⁺",
+                    AppStrings.appNameWithAge,
                     style: TextStyle(
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -73,7 +61,7 @@ class _SplashScreenState extends State<SplashScreen> {
                   ),
                   const SizedBox(height: 8),
                   const Text(
-                    "Where Strangers Meet & Stories Begin",
+                    AppStrings.appTagline,
                     textAlign: TextAlign.center,
                     style: TextStyle(
                       fontSize: 16,
@@ -103,7 +91,7 @@ class _SplashScreenState extends State<SplashScreen> {
         borderRadius: BorderRadius.circular(60),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.2),
+            color: Colors.black.withOpacity(0.2),
             blurRadius: 20,
             offset: const Offset(0, 10),
           ),
