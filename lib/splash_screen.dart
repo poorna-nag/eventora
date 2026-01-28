@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:eventora/core/app_const/app_strings.dart';
 import 'package:eventora/core/app_const/auth_background.dart';
 import 'package:eventora/core/navigation/navigation_service.dart';
+import 'package:eventora/core/services/permission_service.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_bloc.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_state.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +18,27 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen> {
   bool _hasNavigated = false;
 
+  Future<void> _navigateFromAuth(AuthAuthenticated state) async {
+    if (state.user.isAgeVerified != true) {
+      NavigationService.pushReplacementNamed(
+        routeName: AppRoutes.ageVerification,
+      );
+      return;
+    }
+
+    final shouldShowPermissions = await PermissionService.shouldShowRequest(
+      state.user.uid,
+    );
+    if (shouldShowPermissions) {
+      NavigationService.pushReplacementNamed(
+        routeName: AppRoutes.permissions,
+        arguments: state.user.uid,
+      );
+    } else {
+      NavigationService.pushReplacementNamed(routeName: AppRoutes.home);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return BlocListener<AuthBloc, AuthState>(
@@ -25,13 +47,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
         if (state is AuthAuthenticated) {
           _hasNavigated = true;
-          if (state.user.isAgeVerified == true) {
-            NavigationService.pushReplacementNamed(routeName: AppRoutes.home);
-          } else {
-            NavigationService.pushReplacementNamed(
-              routeName: AppRoutes.ageVerification,
-            );
-          }
+          _navigateFromAuth(state);
         } else if (state is AuthUnauthenticated || state is AuthError) {
           _hasNavigated = true;
           NavigationService.pushReplacementNamed(routeName: AppRoutes.login);

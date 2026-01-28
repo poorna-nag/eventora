@@ -129,4 +129,37 @@ Download Eventora now and never miss an event!
   static const String applyFilters = 'Apply Filters';
   static const String retry = 'Retry';
   static const String locationFetchFailed = 'Failed to get location';
+
+  // Permission Strings
+  static const String permissionsTitle = 'App Permissions';
+  static const String permissionsSubtitle =
+      'To provide the best experience, Eventora needs a few permissions';
+  static const String allowAll = 'Allow All Permissions';
+  static const String locationPermission = 'Location';
+  static const String locationPermissionDesc =
+      'To find and show events near you';
+  static const String cameraPermission = 'Camera';
+  static const String cameraPermissionDesc =
+      'To scan QR tickets and capture profile photos';
+  static const String storagePermission = 'Photos & Storage';
+  static const String storagePermissionDesc =
+      'To upload profile pictures and save tickets';
+  static const String continueText = 'Continue';
+
+  // Event Details Strings
+  static const String cannotBookOwnEvent = 'You cannot book your own event';
+  static const String hostOfEvent = 'You are the host of this event';
+  static const String loginToBook = 'Please login to book events';
+  static const String loginToRequestJoin = 'Please login to request join';
+  static const String notEnoughSlots = 'Not enough slots available';
+  static const String joinRequestSent =
+      'Join request sent! Wait for host approval.';
+  static const String joinRequestFailed = 'Failed to send request';
+  static const String userBlockedSuccess = 'User blocked successfully';
+  static const String userBlockFailed = 'Failed to block user';
+  static const String blockUserConfirm =
+      'Are you sure you want to block this user? You will no longer see their events.';
+  static const String block = 'Block';
+  static const String defaultEventImage = 'TEXT_ONLY';
+  static const String defaultVenue = 'Venue to be announced';
 }

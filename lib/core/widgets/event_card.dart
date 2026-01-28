@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:eventora/core/app_const/app_strings.dart';
 import 'package:eventora/core/utils/date_formatter.dart';
 import 'package:eventora/features/events/data/event_model.dart';
 import 'package:flutter/material.dart';
@@ -33,22 +34,68 @@ class EventCard extends StatelessWidget {
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(16),
               ),
-              child: CachedNetworkImage(
-                imageUrl: event.imageUrl,
-                height: 180,
-                width: double.infinity,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  height: 180,
-                  color: Colors.grey.shade200,
-                  child: const Center(child: CircularProgressIndicator()),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  height: 180,
-                  color: Colors.grey.shade300,
-                  child: const Icon(Icons.event, size: 60, color: Colors.grey),
-                ),
-              ),
+              child: event.imageUrl == AppStrings.defaultEventImage
+                  ? Container(
+                      height: 140, // Slightly shorter for text-only
+                      width: double.infinity,
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.orange, Colors.deepOrange],
+                        ),
+                      ),
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            right: -20,
+                            bottom: -20,
+                            child: Icon(
+                              Icons.event,
+                              size: 120,
+                              color: Colors.white.withOpacity(0.2),
+                            ),
+                          ),
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24.0),
+                              child: Text(
+                                event.title,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 0.5,
+                                ),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : CachedNetworkImage(
+                      imageUrl: event.imageUrl,
+                      height: 180,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        height: 180,
+                        color: Colors.grey.shade200,
+                        child: const Center(child: CircularProgressIndicator()),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        height: 180,
+                        color: Colors.grey.shade300,
+                        child: const Icon(
+                          Icons.event,
+                          size: 60,
+                          color: Colors.grey,
+                        ),
+                      ),
+                    ),
             ),
             Padding(
               padding: const EdgeInsets.all(16),

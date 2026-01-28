@@ -4,6 +4,7 @@ import 'package:eventora/features/join_requests/data/join_request_repository.dar
 import 'package:eventora/features/profile/presentation/public_profile_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:eventora/features/notifications/data/notification_repository.dart';
 
 class JoinRequestsScreen extends StatefulWidget {
   final String eventId;
@@ -21,6 +22,8 @@ class JoinRequestsScreen extends StatefulWidget {
 
 class _JoinRequestsScreenState extends State<JoinRequestsScreen> {
   final JoinRequestRepository _repository = JoinRequestRepository();
+  final NotificationRepository _notificationRepository =
+      NotificationRepository();
 
   @override
   Widget build(BuildContext context) {
@@ -293,6 +296,14 @@ class _JoinRequestsScreenState extends State<JoinRequestsScreen> {
     try {
       await _repository.acceptJoinRequest(request.requestId);
 
+      // Send notification to user
+      await _notificationRepository.sendJoinRequestAcceptedNotification(
+        userId: request.userId,
+        eventId: request.eventId,
+        eventTitle: request.eventTitle,
+        isFree: request.eventPrice == 0,
+      );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -318,6 +329,13 @@ class _JoinRequestsScreenState extends State<JoinRequestsScreen> {
   Future<void> _rejectRequest(JoinRequestModel request) async {
     try {
       await _repository.rejectJoinRequest(request.requestId);
+
+      // Send notification to user
+      await _notificationRepository.sendJoinRequestRejectedNotification(
+        userId: request.userId,
+        eventId: request.eventId,
+        eventTitle: request.eventTitle,
+      );
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

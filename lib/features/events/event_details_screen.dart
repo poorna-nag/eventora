@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:eventora/core/app_const/app_strings.dart';
 import 'package:eventora/core/utils/date_formatter.dart';
 import 'package:eventora/core/widgets/custom_button.dart';
 import 'package:eventora/core/widgets/phone_verification_dialog.dart';
@@ -146,16 +147,23 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
   void _handleBooking() async {
     final authState = context.read<AuthBloc>().state;
     if (authState is! AuthAuthenticated) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text(AppStrings.loginToBook)));
+      return;
+    }
+
+    if (authState.user.uid == widget.event.createdBy) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please login to book events')),
+        const SnackBar(content: Text(AppStrings.cannotBookOwnEvent)),
       );
       return;
     }
 
     if (widget.event.availableSlots < _selectedPersons) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Not enough persons available')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text(AppStrings.notEnoughSlots)));
       return;
     }
 
@@ -226,8 +234,15 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
     final authState = context.read<AuthBloc>().state;
     if (authState is! AuthAuthenticated) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please login to request join')),
+        const SnackBar(content: Text(AppStrings.loginToRequestJoin)),
       );
+      return;
+    }
+
+    if (authState.user.uid == widget.event.createdBy) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text(AppStrings.hostOfEvent)));
       return;
     }
 
@@ -251,7 +266,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Join request sent! Wait for host approval.'),
+            content: Text(AppStrings.joinRequestSent),
             backgroundColor: Colors.green,
           ),
         );
@@ -260,7 +275,7 @@ class _EventDetailsScreenState extends State<EventDetailsScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to send request: $e'),
+            content: Text('${AppStrings.joinRequestFailed}: $e'),
             backgroundColor: Colors.red,
           ),
         );
@@ -329,19 +344,20 @@ See you there! 🙌
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Block User'),
-        content: const Text(
-          'Are you sure you want to block this user? You will no longer see their events.',
-        ),
+        title: const Text(AppStrings.block),
+        content: const Text(AppStrings.blockUserConfirm),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: const Text(AppStrings.cancel),
           ),
           ElevatedButton(
             onPressed: () => Navigator.of(context).pop(true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            child: const Text('Block', style: TextStyle(color: Colors.white)),
+            child: const Text(
+              AppStrings.block,
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -357,7 +373,7 @@ See you there! 🙌
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('User blocked successfully'),
+              content: Text(AppStrings.userBlockedSuccess),
               backgroundColor: Colors.green,
             ),
           );
@@ -367,7 +383,7 @@ See you there! 🙌
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Failed to block user: $e'),
+              content: Text('${AppStrings.userBlockFailed}: $e'),
               backgroundColor: Colors.red,
             ),
           );
@@ -488,18 +504,65 @@ See you there! 🙌
               ),
             ],
             flexibleSpace: FlexibleSpaceBar(
-              background: CachedNetworkImage(
-                imageUrl: widget.event.imageUrl,
-                fit: BoxFit.cover,
-                placeholder: (context, url) => Container(
-                  color: Colors.grey.shade200,
-                  child: const Center(child: CircularProgressIndicator()),
-                ),
-                errorWidget: (context, url, error) => Container(
-                  color: Colors.grey.shade300,
-                  child: const Icon(Icons.event, size: 80),
-                ),
-              ),
+              background: widget.event.imageUrl == AppStrings.defaultEventImage
+                  ? Container(
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                          colors: [Colors.orange, Colors.deepOrange],
+                        ),
+                      ),
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            right: -30,
+                            bottom: -30,
+                            child: Icon(
+                              Icons.event,
+                              size: 200,
+                              color: Colors.white.withOpacity(0.15),
+                            ),
+                          ),
+                          Center(
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 40,
+                              ),
+                              child: Text(
+                                widget.event.title,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1,
+                                  shadows: [
+                                    Shadow(
+                                      color: Colors.black26,
+                                      blurRadius: 10,
+                                      offset: Offset(0, 4),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : CachedNetworkImage(
+                      imageUrl: widget.event.imageUrl,
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => Container(
+                        color: Colors.grey.shade200,
+                        child: const Center(child: CircularProgressIndicator()),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: Colors.grey.shade300,
+                        child: const Icon(Icons.event, size: 80),
+                      ),
+                    ),
             ),
           ),
           SliverToBoxAdapter(
@@ -867,7 +930,7 @@ See you there! 🙌
                     ],
                   ),
                   const SizedBox(height: 24),
-                  if (widget.event.availableSlots > 0) ...[
+                  if (widget.event.availableSlots > 0 && !isHost) ...[
                     const Text(
                       'Number of Persons',
                       style: TextStyle(

@@ -1,6 +1,7 @@
 import 'package:eventora/features/auth/presentation/age_verification_screen.dart';
 import 'package:eventora/features/auth/presentation/forgot_password_screen.dart';
 import 'package:eventora/features/auth/presentation/login_screen.dart';
+import 'package:eventora/features/auth/presentation/permissions_screen.dart';
 import 'package:eventora/features/auth/presentation/signup_screen.dart';
 import 'package:eventora/features/create/event_confirm_screen.dart';
 import 'package:eventora/features/events/home_screen.dart';
@@ -83,6 +84,13 @@ class NavigationService {
           settings: settings,
         );
 
+      case AppRoutes.permissions:
+        final userId = settings.arguments as String;
+        return MaterialPageRoute(
+          builder: (_) => PermissionsScreen(userId: userId),
+          settings: settings,
+        );
+
       default:
         return MaterialPageRoute(
           builder: (_) => const SplashScreen(),
@@ -106,4 +114,5 @@ class AppRoutes {
   static const String profile = "/profile";
   static const String editProfile = "/edit-profile";
   static const String ageVerification = "/age-verification";
+  static const String permissions = "/permissions";
 }

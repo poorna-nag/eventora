@@ -57,14 +57,16 @@ class NotificationRepository {
     required String userId,
     required String eventId,
     required String eventTitle,
+    bool isFree = false,
   }) async {
     try {
       final notificationId = _firestore.collection('notifications').doc().id;
       final notification = NotificationModel(
         id: notificationId,
         title: 'Request Accepted! ✅',
-        body:
-            'Your request to join "$eventTitle" has been accepted. Complete payment to secure your spot.',
+        body: isFree
+            ? 'Your request to join "$eventTitle" has been accepted. You can now join the event!'
+            : 'Your request to join "$eventTitle" has been accepted. Please book the event to secure your spot.',
         timestamp: DateTime.now(),
         eventId: eventId,
         type: 'request_accepted',
@@ -136,5 +138,33 @@ class NotificationRepository {
             return NotificationModel.fromJson(data);
           }).toList(),
         );
+  }
+
+  Stream<int> getUnreadCountStream(String userId) {
+    return _firestore
+        .collection('notifications')
+        .where('userId', isEqualTo: userId)
+        .where('isRead', isEqualTo: false)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.length);
+  }
+
+  Future<void> markAllAsRead(String userId) async {
+    try {
+      final batch = _firestore.batch();
+      final unreadDocs = await _firestore
+          .collection('notifications')
+          .where('userId', isEqualTo: userId)
+          .where('isRead', isEqualTo: false)
+          .get();
+
+      for (var doc in unreadDocs.docs) {
+        batch.update(doc.reference, {'isRead': true});
+      }
+
+      await batch.commit();
+    } catch (e) {
+      print('Error marking all as read: $e');
+    }
   }
 }

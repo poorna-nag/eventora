@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:eventora/core/app_const/app_strings.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:eventora/core/services/firebase_storage_service.dart';
 import 'package:eventora/core/services/location_service.dart';
@@ -203,25 +204,17 @@ class _CreateScreenState extends State<CreateScreen> {
       return;
     }
 
-    if (_selectedImage == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select an event image')),
-      );
-      return;
-    }
+    // If Title or Description are empty, validation will fail due to field-level validators.
 
     if (_selectedDate == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please select event date')));
-      return;
+      // Default to tomorrow if not selected
+      final now = DateTime.now();
+      _selectedDate = DateTime(now.year, now.month, now.day + 1);
     }
 
     if (_selectedTime == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('Please select event time')));
-      return;
+      // Default to 6:00 PM if not selected
+      _selectedTime = const TimeOfDay(hour: 18, minute: 0);
     }
 
     final authState = context.read<AuthBloc>().state;
@@ -233,25 +226,27 @@ class _CreateScreenState extends State<CreateScreen> {
     }
 
     try {
-      String imageUrl;
-      try {
-        imageUrl = await _storageService.uploadEventImage(_selectedImage!);
-      } catch (uploadError) {
-        print('Image upload failed: $uploadError');
-        // Use a placeholder image URL if upload fails
-        // This allows event creation to proceed despite storage issues
-        imageUrl = 'https://via.placeholder.com/400x300.png?text=Event+Image';
+      String imageUrl = AppStrings.defaultEventImage;
 
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                'Image upload failed: ${uploadError.toString().replaceAll('Exception: ', '')}. Using placeholder.',
+      if (_selectedImage != null) {
+        try {
+          imageUrl = await _storageService.uploadEventImage(_selectedImage!);
+        } catch (uploadError) {
+          print('Image upload failed: $uploadError');
+          // Fallback to placeholder if upload fails
+          imageUrl = 'https://via.placeholder.com/400x300.png?text=Event+Image';
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(
+                  'Image upload failed: ${uploadError.toString().replaceAll('Exception: ', '')}. Using placeholder.',
+                ),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 4),
               ),
-              backgroundColor: Colors.orange,
-              duration: const Duration(seconds: 4),
-            ),
-          );
+            );
+          }
         }
       }
 
@@ -271,12 +266,18 @@ class _CreateScreenState extends State<CreateScreen> {
         description: _descriptionController.text.trim(),
         date: _selectedDate!,
         time: eventTime,
-        venue: _venueController.text.trim(),
+        venue: _venueController.text.trim().isEmpty
+            ? AppStrings.defaultVenue
+            : _venueController.text.trim(),
         price: _priceController.text.trim().isEmpty
             ? 0
             : int.parse(_priceController.text),
-        totalSlots: int.parse(_personsController.text),
-        availableSlots: int.parse(_personsController.text),
+        totalSlots: _personsController.text.trim().isEmpty
+            ? 100
+            : int.parse(_personsController.text),
+        availableSlots: _personsController.text.trim().isEmpty
+            ? 100
+            : int.parse(_personsController.text),
         createdBy: authState.user.uid,
         imageUrl: imageUrl,
         categories: _selectedCategories.isNotEmpty
@@ -506,7 +507,7 @@ class _CreateScreenState extends State<CreateScreen> {
                                   ),
                                   const SizedBox(height: 12),
                                   Text(
-                                    'Tap to upload event image',
+                                    'Tap to upload event image (Optional)',
                                     style: TextStyle(
                                       color: Colors.grey.shade600,
                                       fontSize: 16,
@@ -519,14 +520,14 @@ class _CreateScreenState extends State<CreateScreen> {
                     const SizedBox(height: 20),
                     CustomTextField(
                       controller: _titleController,
-                      hintText: 'Event Title',
+                      hintText: 'Event Title *',
                       validator: (value) =>
                           Validators.validateRequired(value, 'Title'),
                     ),
                     const SizedBox(height: 16),
                     CustomTextField(
                       controller: _descriptionController,
-                      hintText: 'Event Description',
+                      hintText: 'Event Description *',
                       maxLines: 4,
                       validator: (value) =>
                           Validators.validateRequired(value, 'Description'),
@@ -550,9 +551,8 @@ class _CreateScreenState extends State<CreateScreen> {
                     const SizedBox(height: 16),
                     CustomTextField(
                       controller: _venueController,
-                      hintText: 'Venue / Address',
-                      validator: (value) =>
-                          Validators.validateRequired(value, 'Venue'),
+                      hintText: 'Venue / Address (Optional)',
+                      validator: null,
                       prefixIcon: const Icon(
                         Icons.location_on,
                         color: Colors.orange,
@@ -590,7 +590,7 @@ class _CreateScreenState extends State<CreateScreen> {
                                     ).format(_selectedDate!)
                                   : '',
                             ),
-                            hintText: 'Select Date',
+                            hintText: 'Select Date (Optional)',
                             readOnly: true,
                             onTap: _selectDate,
                             prefixIcon: const Icon(
@@ -607,7 +607,7 @@ class _CreateScreenState extends State<CreateScreen> {
                                   ? _selectedTime!.format(context)
                                   : '',
                             ),
-                            hintText: 'Select Time',
+                            hintText: 'Select Time (Optional)',
                             readOnly: true,
                             onTap: _selectTime,
                             prefixIcon: const Icon(
@@ -624,7 +624,7 @@ class _CreateScreenState extends State<CreateScreen> {
                         Expanded(
                           child: CustomTextField(
                             controller: _priceController,
-                            hintText: '(₹) Price',
+                            hintText: '(₹) Price (Optional)',
                             keyboardType: TextInputType.number,
                             prefixIcon: const Icon(
                               Icons.currency_rupee,
@@ -636,13 +636,9 @@ class _CreateScreenState extends State<CreateScreen> {
                         Expanded(
                           child: CustomTextField(
                             controller: _personsController,
-                            hintText: 'Total Persons',
+                            hintText: 'Total Persons (Optional)',
                             keyboardType: TextInputType.number,
-                            validator: (value) =>
-                                Validators.validatePositiveNumber(
-                                  value,
-                                  'Persons',
-                                ),
+                            validator: null,
                             prefixIcon: const Icon(
                               Icons.people,
                               color: Colors.orange,

@@ -13,6 +13,7 @@ class CustomTextField extends StatelessWidget {
   final bool enabled;
   final VoidCallback? onTap;
   final bool readOnly;
+  final AutovalidateMode? autovalidateMode;
 
   const CustomTextField({
     super.key,
@@ -28,6 +29,7 @@ class CustomTextField extends StatelessWidget {
     this.enabled = true,
     this.onTap,
     this.readOnly = false,
+    this.autovalidateMode,
   });
 
   @override
@@ -41,6 +43,7 @@ class CustomTextField extends StatelessWidget {
       enabled: enabled,
       onTap: onTap,
       readOnly: readOnly,
+      autovalidateMode: autovalidateMode,
       decoration: InputDecoration(
         hintText: hintText,
         labelText: labelText,
@@ -72,6 +75,7 @@ class CustomTextField extends StatelessWidget {
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: Colors.red, width: 2),
         ),
+        errorStyle: const TextStyle(height: 0.8, fontSize: 11),
       ),
     );
   }

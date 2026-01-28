@@ -1,7 +1,11 @@
 import 'package:eventora/core/widgets/event_card.dart';
+import 'package:eventora/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:eventora/features/auth/presentation/bloc/auth_state.dart';
 import 'package:eventora/features/events/data/event_repository.dart';
+import 'package:eventora/features/events/event_details_screen.dart';
 import 'package:eventora/features/events/event_tracking_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class MyCreatedEventsScreen extends StatelessWidget {
   final String userId;
@@ -92,13 +96,28 @@ class MyCreatedEventsScreen extends StatelessWidget {
               return EventCard(
                 event: event,
                 onTap: () {
-                  // Navigate to tracking screen for created events
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => EventTrackingScreen(event: event),
-                    ),
-                  );
+                  final authState = context.read<AuthBloc>().state;
+                  final isOwner =
+                      authState is AuthAuthenticated &&
+                      authState.user.uid == userId;
+
+                  if (isOwner) {
+                    // Navigate to tracking screen for my own events
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EventTrackingScreen(event: event),
+                      ),
+                    );
+                  } else {
+                    // Navigate to event details for others' events
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => EventDetailsScreen(event: event),
+                      ),
+                    );
+                  }
                 },
               );
             },

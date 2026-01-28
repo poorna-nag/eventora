@@ -2,6 +2,7 @@ import 'package:eventora/core/app_const/app_colors.dart';
 import 'package:eventora/core/app_const/app_strings.dart';
 import 'package:eventora/core/app_const/auth_background.dart';
 import 'package:eventora/core/navigation/navigation_service.dart';
+import 'package:eventora/core/services/permission_service.dart';
 import 'package:eventora/core/utils/validators.dart';
 import 'package:eventora/core/widgets/custom_button.dart';
 import 'package:eventora/core/widgets/custom_text_field.dart';
@@ -61,7 +62,7 @@ class _LoginScreenState extends State<LoginScreen> {
             builder: (context) => SafetyWarningDialog(
               onAcknowledge: () {
                 if (mounted) {
-                  _checkAgeAndNavigate(state);
+                  _checkAgePermissionsAndNavigate(state);
                 }
               },
             ),
@@ -83,13 +84,24 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
-  void _checkAgeAndNavigate(AuthAuthenticated state) {
-    if (state.user.isAgeVerified == true) {
-      NavigationService.pushReplacementNamed(routeName: AppRoutes.home);
-    } else {
+  Future<void> _checkAgePermissionsAndNavigate(AuthAuthenticated state) async {
+    if (state.user.isAgeVerified != true) {
       NavigationService.pushReplacementNamed(
         routeName: AppRoutes.ageVerification,
       );
+      return;
+    }
+
+    final shouldShowPermissions = await PermissionService.shouldShowRequest(
+      state.user.uid,
+    );
+    if (shouldShowPermissions) {
+      NavigationService.pushReplacementNamed(
+        routeName: AppRoutes.permissions,
+        arguments: state.user.uid,
+      );
+    } else {
+      NavigationService.pushReplacementNamed(routeName: AppRoutes.home);
     }
   }
 
@@ -170,6 +182,7 @@ class _LoginScreenState extends State<LoginScreen> {
             hintText: AppStrings.email,
             keyboardType: TextInputType.emailAddress,
             validator: Validators.validateEmail,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
             prefixIcon: const Icon(
               Icons.email_outlined,
               color: AppColors.iconColor,

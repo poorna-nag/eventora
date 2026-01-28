@@ -125,6 +125,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
             hintText: AppStrings.email,
             keyboardType: TextInputType.emailAddress,
             validator: Validators.validateEmail,
+            autovalidateMode: AutovalidateMode.onUserInteraction,
             prefixIcon: const Icon(
               Icons.email_outlined,
               color: AppColors.iconColor,

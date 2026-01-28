@@ -7,6 +7,9 @@ import 'package:eventora/features/events/bloc/event_event.dart';
 import 'package:eventora/features/events/bloc/event_state.dart';
 import 'package:eventora/features/events/event_details_screen.dart';
 import 'package:eventora/features/notifications/presentation/notifications_screen.dart';
+import 'package:eventora/features/notifications/data/notification_repository.dart';
+import 'package:eventora/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:eventora/features/auth/presentation/bloc/auth_state.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -132,23 +135,55 @@ class _HomeViewScreenState extends State<HomeViewScreen> {
   }
 
   Widget _buildNotificationIcon() {
-    return GestureDetector(
-      onTap: () => Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const NotificationsScreen()),
-      ),
-      child: Container(
-        padding: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          shape: BoxShape.circle,
-          border: Border.all(color: Colors.grey.shade300),
-        ),
-        child: const Icon(
-          Icons.notifications_outlined,
-          color: AppColors.iconColor,
-          size: 24,
-        ),
-      ),
+    final authState = context.read<AuthBloc>().state;
+    if (authState is! AuthAuthenticated) {
+      return const SizedBox.shrink();
+    }
+
+    return StreamBuilder<int>(
+      stream: NotificationRepository().getUnreadCountStream(authState.user.uid),
+      builder: (context, snapshot) {
+        final unreadCount = snapshot.data ?? 0;
+
+        return GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => const NotificationsScreen(),
+            ),
+          ),
+          child: Stack(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.grey.shade300),
+                ),
+                child: const Icon(
+                  Icons.notifications_outlined,
+                  color: AppColors.iconColor,
+                  size: 24,
+                ),
+              ),
+              if (unreadCount > 0)
+                Positioned(
+                  right: 4,
+                  top: 4,
+                  child: Container(
+                    width: 12,
+                    height: 12,
+                    decoration: BoxDecoration(
+                      color: Colors.amber,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 2),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
     );
   }
 

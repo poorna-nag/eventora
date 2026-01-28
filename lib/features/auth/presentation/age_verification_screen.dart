@@ -2,8 +2,10 @@ import 'package:eventora/core/app_const/app_colors.dart';
 import 'package:eventora/core/app_const/app_strings.dart';
 import 'package:eventora/core/app_const/auth_background.dart';
 import 'package:eventora/core/navigation/navigation_service.dart';
+import 'package:eventora/core/services/permission_service.dart';
 import 'package:eventora/core/widgets/custom_button.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_bloc.dart';
+import 'package:eventora/features/auth/presentation/bloc/auth_state.dart';
 import 'package:eventora/features/auth/presentation/bloc/auth_event.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -28,7 +30,13 @@ class _AgeVerificationScreenState extends State<AgeVerificationScreen> {
         await authRepo.verifyAge();
         if (mounted) {
           context.read<AuthBloc>().add(AuthCheckRequested());
-          NavigationService.pushReplacementNamed(routeName: AppRoutes.home);
+          final state = context.read<AuthBloc>().state;
+          if (state is AuthAuthenticated) {
+            _checkPermissionsAndNavigate(state);
+          } else {
+            // Fallback if state is not immediately updated
+            NavigationService.pushReplacementNamed(routeName: AppRoutes.home);
+          }
         }
       } catch (e) {
         if (mounted) {
@@ -53,6 +61,20 @@ class _AgeVerificationScreenState extends State<AgeVerificationScreen> {
           ),
         );
       }
+    }
+  }
+
+  Future<void> _checkPermissionsAndNavigate(AuthAuthenticated state) async {
+    final shouldShowPermissions = await PermissionService.shouldShowRequest(
+      state.user.uid,
+    );
+    if (shouldShowPermissions) {
+      NavigationService.pushReplacementNamed(
+        routeName: AppRoutes.permissions,
+        arguments: state.user.uid,
+      );
+    } else {
+      NavigationService.pushReplacementNamed(routeName: AppRoutes.home);
     }
   }
 

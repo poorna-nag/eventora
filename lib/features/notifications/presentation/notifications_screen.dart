@@ -28,6 +28,14 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   void initState() {
     super.initState();
     _setupStreams();
+    _markAllRead();
+  }
+
+  void _markAllRead() {
+    final authState = context.read<AuthBloc>().state;
+    if (authState is AuthAuthenticated) {
+      NotificationRepository().markAllAsRead(authState.user.uid);
+    }
   }
 
   void _setupStreams() {
@@ -204,7 +212,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
                 width: 10,
                 height: 10,
                 decoration: const BoxDecoration(
-                  color: Colors.blue,
+                  color: Colors.amber,
                   shape: BoxShape.circle,
                 ),
               ),
